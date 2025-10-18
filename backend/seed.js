@@ -24,8 +24,7 @@ async function seed() {
     Application.deleteMany({}),
     Job.deleteMany({}),
   ]);
-  console.log("✅ Cleared existing data");
-
+  console.log("Cleared data ");
   // --- INDUSTRY ENUMS ---
   const industries = [
     "Technology",
