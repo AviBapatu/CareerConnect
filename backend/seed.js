@@ -6,7 +6,7 @@ import Article from "./models/Article.js";
 import Application from "./models/Application.js";
 import Job from "./models/Job.js";
 import { faker } from "@faker-js/faker";
-import dotenv from "dotenv";
+import dotenv from "dotenv"; //env
 
 dotenv.config();
 const MONGO_URI = process.env.MONGO_URI;
