@@ -283,10 +283,10 @@ const updateMe = async (req, res) => {
     return res.status(404).json({ success: false, message: "User not found." });
   }
   user.role = role;
-  
+
   console.log(user.role);
   await user.save();
-  
+
   // Return the same format as getMe for consistency
   res.status(200).json({
     id: user._id,
@@ -346,7 +346,7 @@ const forgotPassword = async (req, res) => {
   user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
   await user.save();
 
-  const resetURL = `http://localhost:5173/auth/reset-password/${token}/${user._id}`;
+  const resetURL = `${process.env.FRONTEND_URL}/auth/reset-password/${token}/${user._id}`;
   await sendPasswordReset(email, resetURL);
 
   res.status(200).json({ message: "Password reset link sent successfully" });
@@ -373,19 +373,19 @@ const resetPassword = async (req, res) => {
 
   const user = await catchAndWrap(
     () =>
-  res.status(200).json({
-    message: "Login successful",
-    token,
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      company: user.company,
-      companyRole: user.companyRole,
-      resumeUrl: user.resumeUrl || null,
-    },
-  }));
+      res.status(200).json({
+        message: "Login successful",
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          company: user.company,
+          companyRole: user.companyRole,
+          resumeUrl: user.resumeUrl || null,
+        },
+      }));
 
   await user.save();
 
