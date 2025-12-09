@@ -36,7 +36,7 @@ const Navbar = () => {
       await respondToCompanyJoinRequest(companyId, "accepted");
       refetchRequests();
       // You can add a toast notification here if you have a toast system
-      console.log("Request accepted successfully");
+      
       
       // Reload the page to update the interface
       window.location.reload();
@@ -58,7 +58,7 @@ const Navbar = () => {
       await respondToCompanyJoinRequest(companyId, "rejected");
       refetchRequests();
       // You can add a toast notification here if you have a toast system
-      console.log("Request rejected successfully");
+      
       
       // Reload the page to update the interface
       window.location.reload();

@@ -35,12 +35,10 @@ const useAuthStore = create(
 
       initializeAuth: async () => {
         const { token } = get();
-        console.log("🔑 InitializeAuth started:", { hasToken: !!token });
+        
 
         if (!token) {
-          console.log(
-            "🔑 InitializeAuth: No token found, setting initialized to true"
-          );
+          
           set({ isInitialized: true });
           return;
         }
@@ -50,26 +48,23 @@ const useAuthStore = create(
           api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
           // Fetch user profile
-          console.log("🔑 InitializeAuth: Fetching user profile...");
+          
           const response = await api.get("/auth/me");
           const userData = response.data;
-          console.log("🔑 InitializeAuth: User profile fetched:", userData);
+          
 
           set({ user: userData, isInitialized: true });
 
           // Update company store if user has company data
           if (userData.company && userData.companyRole) {
-            console.log("🔑 InitializeAuth: Setting company data:", {
-              company: userData.company,
-              companyRole: userData.companyRole,
-            });
+            
             // userData.company is already the ID, not an object
             useCompanyStore
               .getState()
               .setCompanyData(userData.company, userData.companyRole);
           } else {
             // Clear company store if user has no company association
-            console.log("🔑 InitializeAuth: Clearing company store");
+            
             useCompanyStore.getState().resetCompany();
           }
         } catch (error) {
@@ -114,10 +109,10 @@ const useAuthStore = create(
       },
 
       login: async (email, password, otp) => {
-        console.log("🔑 Login started for:", email);
+        
         try {
           const payload = otp ? { email, password, otp } : { email, password };
-          console.log("🔑 Login payload:", payload);
+          
           const res = await api.post("/auth/login", payload);
           if (res.data.twoFactorRequired) {
             // Do not set token or fetch profile yet
@@ -146,7 +141,7 @@ const useAuthStore = create(
           } else {
             useCompanyStore.getState().resetCompany();
           }
-          console.log("🔑 Login successful:", { user: userData });
+          
           return { success: true, user: userData };
         } catch (error) {
           console.error("🔑 Login failed:", error);
@@ -159,15 +154,15 @@ const useAuthStore = create(
       },
 
       logout: () => {
-        console.log("🔑 Logout: Starting logout process");
+        
 
         // Clear all localStorage
         localStorage.clear();
-        console.log("🔑 Logout: All localStorage cleared");
+        
 
         // Clear Authorization header from axios
         delete api.defaults.headers.common["Authorization"];
-        console.log("🔑 Logout: Authorization header cleared from axios");
+        
 
         // Clear Zustand store state and reset initialization flag
         set({
@@ -177,15 +172,13 @@ const useAuthStore = create(
           resumeUrl: null,
           autoSendStatusEmail: false,
         });
-        console.log(
-          "🔑 Logout: Zustand store cleared and isInitialized set to false"
-        );
+        
 
         // Also clear company store data
         useCompanyStore.getState().resetCompany();
-        console.log("🔑 Logout: Company store cleared");
+        
 
-        console.log("🔑 Logout: Process completed");
+        
       },
 
       fetchProfile: async () => {
@@ -214,30 +207,22 @@ const useAuthStore = create(
 
       refreshUserData: async () => {
         try {
-          console.log("🔄 Refreshing user data...");
+          
           const response = await api.get("/auth/me");
           const userData = response.data;
           set({ user: userData });
 
-          console.log("🔄 User data refreshed:", {
-            hasCompany: !!userData.company,
-            companyRole: userData.companyRole,
-            companyId: userData.company,
-          });
+          
 
           // Update company store if user has company data
           if (userData.company && userData.companyRole) {
-            console.log(
-              "🏢 Setting company data in store:",
-              userData.company,
-              userData.companyRole
-            );
+            
             // userData.company is already the ID, not an object
             useCompanyStore
               .getState()
               .setCompanyData(userData.company, userData.companyRole);
           } else {
-            console.log("🏢 Resetting company store");
+            
             useCompanyStore.getState().resetCompany();
           }
 

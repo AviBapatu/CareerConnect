@@ -52,13 +52,13 @@ const EditCompanyDetails = () => {
 
   // Debug logging
   React.useEffect(() => {
-    console.log("=== EditCompanyDetails Debug Info ===");
-    console.log("URL companyId:", companyId);
-    console.log("User:", user);
-    console.log("CompanyData:", companyData);
-    console.log("CompanyData.company:", companyData?.company);
-    console.log("Target Company ID:", targetCompanyId);
-    console.log("====================================");
+    
+    
+    
+    
+    
+    
+    
   }, [companyId, user, companyData, targetCompanyId]);
 
   const [formData, setFormData] = useState({

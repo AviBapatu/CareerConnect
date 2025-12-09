@@ -36,12 +36,9 @@ const EditProfilePage = () => {
   const profile = profileResponse?.data || profileResponse;
 
   // Debug: Log the profile data to see what's being fetched
-  console.log("EditProfilePage - Raw profile response:", profileResponse);
-  console.log(
-    "EditProfilePage - Profile response data:",
-    profileResponse?.data
-  );
-  console.log("EditProfilePage - Extracted profile data:", profile);
+  
+  
+  
 
   const form = useForm({
     resolver: zodResolver(profileValidationSchema),
@@ -65,19 +62,19 @@ const EditProfilePage = () => {
   const updateProfileMutation = useMutation({
     mutationFn: updateProfile,
     onSuccess: (data) => {
-      console.log("EditProfilePage - Update success, raw data:", data);
-      console.log("EditProfilePage - data.data:", data.data);
+      
+      
 
       queryClient.invalidateQueries({ queryKey: ["profile"] });
 
       // Backend returns: { success: true, message: "Profile updated", user: {...} }
       // Axios wraps it in: { data: { success: true, message: "Profile updated", user: {...} } }
       const userData = data.data?.user;
-      console.log("EditProfilePage - Extracted userData:", userData);
+      
 
       if (userData) {
         setUser(userData);
-        console.log("EditProfilePage - setUser called with:", userData);
+        
         toast.success("Profile updated successfully");
         navigate("/profile");
       } else {
@@ -96,18 +93,9 @@ const EditProfilePage = () => {
   });
 
   useEffect(() => {
-    console.log("EditProfilePage - useEffect triggered with profile:", profile);
+    
     if (profile) {
-      console.log("EditProfilePage - Resetting form with profile data:", {
-        name: profile.name,
-        email: profile.email,
-        headline: profile.headline,
-        about: profile.about,
-        location: profile.location,
-        skills: profile.skills,
-        isOpenToWork: profile.isOpenToWork,
-        social: profile.social,
-      });
+      
 
       const formData = {
         name: profile.name || "",
@@ -145,10 +133,10 @@ const EditProfilePage = () => {
         }
       });
 
-      console.log("EditProfilePage - Form reset completed");
-      console.log("EditProfilePage - Current form values:", form.getValues());
+      
+      
     } else {
-      console.log("EditProfilePage - No profile data available for form reset");
+      
     }
   }, [profile, form]);
 

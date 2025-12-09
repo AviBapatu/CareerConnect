@@ -25,11 +25,7 @@ export const useJoinRequestStatusChecker = () => {
   // This indicates they might have a pending join request
   const shouldCheck = user?.role === "recruiter" && !companyId;
 
-  console.log("🔍 Status Checker - Should check:", shouldCheck, {
-    userRole: user?.role,
-    companyId,
-    companyRole,
-  });
+  
 
   const { data: latestUserData } = useQuery({
     queryKey: ["joinRequestStatus", user?._id],
@@ -41,17 +37,11 @@ export const useJoinRequestStatusChecker = () => {
 
   useEffect(() => {
     if (latestUserData && shouldCheck) {
-      console.log("🔍 Status Checker - Latest user data:", {
-        hasCompany: !!latestUserData.company,
-        companyRole: latestUserData.companyRole,
-        currentCompanyId: companyId,
-      });
+      
 
       // Check if user now has company association (join request was accepted)
       if (latestUserData.company && latestUserData.companyRole) {
-        console.log(
-          "🎉 Status Checker - User got accepted! Refreshing data..."
-        );
+        
 
         // Show success toast notification
         toast.success(
@@ -71,14 +61,10 @@ export const useJoinRequestStatusChecker = () => {
 
         // Redirect to appropriate dashboard based on role
         if (latestUserData.companyRole === "employee") {
-          console.log(
-            "🎉 Status Checker - Redirecting employee to dashboard..."
-          );
+          
           navigate("/recruiter/dashboard");
         } else {
-          console.log(
-            "🎉 Status Checker - Redirecting recruiter/admin to dashboard..."
-          );
+          
           navigate("/recruiter/dashboard");
         }
       }

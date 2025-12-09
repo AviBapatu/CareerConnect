@@ -29,10 +29,7 @@ api.interceptors.response.use(
 
       // Only logout if it's actually an auth endpoint failure
       if (isAuthEndpoint && !isLoginRoute) {
-        console.log(
-          "Authentication endpoint failed, logging out:",
-          error.config?.url
-        );
+        
         localStorage.removeItem("token");
         window.location.href = "/auth/login";
       } else {

@@ -40,7 +40,7 @@ const MyApplicationsPage = () => {
       console.error("Error fetching applications:", err);
     },
     onSuccess: (data) => {
-      console.log("Applications fetched successfully:", data);
+      
     },
   });
 
@@ -50,13 +50,7 @@ const MyApplicationsPage = () => {
     : [];
 
   // Debug logging to see what we're getting from the API
-  console.log("Applications API Response:", {
-    applicationsResponse,
-    applications,
-    isArray: Array.isArray(applications),
-    length: applications.length,
-    error,
-  });
+  
 
   // Delete application mutation
   const deleteApplicationMutation = useMutation({

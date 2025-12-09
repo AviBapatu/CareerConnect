@@ -12,17 +12,14 @@ export const getArticles = async (params = {}) => {
     if (params.status) queryParams.append("status", params.status);
     if (params.author) queryParams.append("author", params.author);
 
-    console.log(
-      "🐛 DEBUG - API request URL:",
-      `/article?${queryParams.toString()}`
-    );
-    console.log("🐛 DEBUG - API request params:", params);
+    
+    
 
     const response = await api.get(`/article?${queryParams.toString()}`);
 
-    console.log("� DEBUG - API response status:", response.status);
-    console.log("🐛 DEBUG - API response data:", response.data);
-    console.log("�📰 Articles fetched successfully:", response.data);
+    
+    
+    
 
     return response.data;
   } catch (error) {
@@ -36,7 +33,7 @@ export const getArticles = async (params = {}) => {
 export const getArticleById = async (articleId) => {
   try {
     const response = await api.get(`/article/${articleId}`);
-    console.log("📰 Article fetched successfully:", response.data);
+    
     return response.data;
   } catch (error) {
     console.error("❌ Error fetching article:", error);
@@ -48,7 +45,7 @@ export const getArticleById = async (articleId) => {
 export const createArticle = async (articleData) => {
   try {
     const response = await api.post("/article", articleData);
-    console.log("📰 Article created successfully:", response.data);
+    
     return response.data;
   } catch (error) {
     console.error("❌ Error creating article:", error);
@@ -60,7 +57,7 @@ export const createArticle = async (articleData) => {
 export const updateArticle = async (articleId, articleData) => {
   try {
     const response = await api.patch(`/article/${articleId}`, articleData);
-    console.log("📰 Article updated successfully:", response.data);
+    
     return response.data;
   } catch (error) {
     console.error("❌ Error updating article:", error);
@@ -72,7 +69,7 @@ export const updateArticle = async (articleId, articleData) => {
 export const deleteArticle = async (articleId) => {
   try {
     const response = await api.delete(`/article/${articleId}`);
-    console.log("📰 Article deleted successfully:", response.data);
+    
     return response.data;
   } catch (error) {
     console.error("❌ Error deleting article:", error);
@@ -84,7 +81,7 @@ export const deleteArticle = async (articleId) => {
 export const toggleArticleLike = async (articleId) => {
   try {
     const response = await api.post(`/article/${articleId}/like`);
-    console.log("👍 Article like toggled successfully:", response.data);
+    
     return response.data;
   } catch (error) {
     console.error("❌ Error toggling article like:", error);
@@ -99,7 +96,7 @@ export const addArticleComment = async (articleId, commentData) => {
       `/article/${articleId}/comment`,
       commentData
     );
-    console.log("💬 Comment added successfully:", response.data);
+    
     return response.data;
   } catch (error) {
     console.error("❌ Error adding comment:", error);
@@ -111,7 +108,7 @@ export const addArticleComment = async (articleId, commentData) => {
 export const getArticleComments = async (articleId) => {
   try {
     const response = await api.get(`/article/${articleId}/comments`);
-    console.log("💬 Comments fetched successfully:", response.data);
+    
     return response.data;
   } catch (error) {
     console.error("❌ Error fetching comments:", error);
@@ -125,7 +122,7 @@ export const updateArticleStatus = async (articleId, status) => {
     const response = await api.patch(`/article/${articleId}/status`, {
       status,
     });
-    console.log("📰 Article status updated successfully:", response.data);
+    
     return response.data;
   } catch (error) {
     console.error("❌ Error updating article status:", error);
@@ -137,7 +134,7 @@ export const updateArticleStatus = async (articleId, status) => {
 export const getTrendingArticles = async (limit = 5) => {
   try {
     const response = await api.get(`/article/trending?limit=${limit}`);
-    console.log("🔥 Trending articles fetched successfully:", response.data);
+    
     return response.data;
   } catch (error) {
     console.error("❌ Error fetching trending articles:", error);
@@ -151,7 +148,7 @@ export const getArticlesByCategory = async (category, limit = 10) => {
     const response = await api.get(
       `/article/category/${category}?limit=${limit}`
     );
-    console.log("📂 Articles by category fetched successfully:", response.data);
+    
     return response.data;
   } catch (error) {
     console.error("❌ Error fetching articles by category:", error);
@@ -170,7 +167,7 @@ export const searchArticles = async (query, filters = {}) => {
     });
 
     const response = await api.get(`/article/search?${queryParams.toString()}`);
-    console.log("🔍 Article search completed successfully:", response.data);
+    
     return response.data;
   } catch (error) {
     console.error("❌ Error searching articles:", error);
@@ -182,7 +179,7 @@ export const searchArticles = async (query, filters = {}) => {
 export const toggleLike = async (articleId) => {
   try {
     const response = await api.post(`/article/${articleId}/like`);
-    console.log("👍 Article like toggled successfully:", response.data);
+    
     return response.data;
   } catch (error) {
     console.error("❌ Error toggling article like:", error);
@@ -194,7 +191,7 @@ export const toggleLike = async (articleId) => {
 export const getMyArticles = async () => {
   try {
     const response = await api.get("/article/my");
-    console.log("📰 My articles fetched successfully:", response.data);
+    
     return response.data;
   } catch (error) {
     console.error("❌ Error fetching my articles:", error);
@@ -209,7 +206,7 @@ export const addComment = async (articleId, commentData) => {
       `/article/${articleId}/comment`,
       commentData
     );
-    console.log("💬 Comment added successfully:", response.data);
+    
     return response.data;
   } catch (error) {
     console.error("❌ Error adding comment:", error);

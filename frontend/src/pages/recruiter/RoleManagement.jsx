@@ -82,13 +82,13 @@ const RoleManagement = () => {
       return;
     }
     setSearchLoading(true);
-    console.log('[DEBUG] Searching for users:', searchTerm, 'companyId:', companyId);
+    
     const timeout = setTimeout(async () => {
       try {
         const url = `/connection/search?search=${encodeURIComponent(searchTerm)}&companyId=${companyId}`;
-        console.log('[DEBUG] API Request:', url);
+        
         const res = await api.get(url);
-        console.log('[DEBUG] API Response:', res.data);
+        
         setSearchResults(res.data.results || []);
       } catch (e) {
         console.error('[DEBUG] Search error:', e);
@@ -102,17 +102,17 @@ const RoleManagement = () => {
 
   useEffect(() => {
     if (selectedUser) {
-      console.log('[DEBUG] Selected user:', selectedUser);
+      
     }
   }, [selectedUser]);
 
   const sendUserJoinRequest = useMutation({
     mutationFn: ({ userId, roleTitle }) => {
-      console.log('[DEBUG] Sending invite:', { userId, roleTitle, companyId });
+      
       return api.post(`/company/${companyId}/invite`, { userId, roleTitle });
     },
     onSuccess: (data) => {
-      console.log('[DEBUG] Invite success:', data);
+      
       toast.success("Join request sent!");
       setJoinDialogOpen(false);
       setSelectedUser(null);

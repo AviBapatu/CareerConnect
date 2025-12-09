@@ -52,14 +52,14 @@ import Navbar from "../components/Navbar";
 const AppRouter = () => {
   const { loading } = useInitializeAuth();
 
-  console.log("🛤️ AppRouter: Rendering, loading:", loading);
+  
 
   if (loading) {
-    console.log("🛤️ AppRouter: Still loading, showing LoadingScreen");
+    
     return <LoadingScreen />;
   }
 
-  console.log("🛤️ AppRouter: Loading complete, rendering routes");
+  
   return (
     <Routes>
       {/* Public Auth Routes - redirect to dashboard if already logged in */}

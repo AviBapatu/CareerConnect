@@ -14,16 +14,7 @@ const Sidebar = () => {
 
   // Debug: Log when user or company data changes to track updates
   useEffect(() => {
-    console.log(
-      "Sidebar - User updated:",
-      user?.name,
-      "Avatar:",
-      user?.avatarUrl,
-      "Company ID:",
-      companyId,
-      "Company Role:",
-      companyRole
-    );
+    
   }, [user?.avatarUrl, user?.name, companyId, companyRole]);
 
   // Check if sidebar should be visible
@@ -36,10 +27,7 @@ const Sidebar = () => {
 
   // Check if user has company access
   const hasCompanyAccess = () => {
-    console.log("🏢 Sidebar - Checking company access:", {
-      companyId,
-      companyRole,
-    });
+    
     return (
       companyId &&
       companyRole &&
@@ -212,8 +200,8 @@ const Sidebar = () => {
   };
 
   const handleNavigation = (path) => {
-    console.log("🧭 Sidebar: Navigating to:", path);
-    console.log("🧭 Sidebar: Current location:", location.pathname);
+    
+    
     navigate(path);
   };
 

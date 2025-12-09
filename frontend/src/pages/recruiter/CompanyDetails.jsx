@@ -83,24 +83,21 @@ const CompanyDetails = () => {
 
   // Debug logging
   React.useEffect(() => {
-    console.log("=== CompanyDetails Debug Info ===");
-    console.log("Company ID:", companyId);
-    console.log("User:", user);
-    console.log("User role:", user?.role);
-    console.log("Company response:", companyResponse);
-    console.log("Jobs response:", jobsResponse);
-    console.log("Jobs response data:", jobsResponse?.data);
-    console.log("Jobs loading:", jobsLoading);
-    console.log("Jobs error:", jobsError);
-    console.log("All jobs from API:", allJobs);
-    console.log("All jobs count:", allJobs?.length);
-    console.log("Active jobs (filtered):", jobs);
-    console.log("Active jobs count:", jobs?.length);
-    console.log(
-      "Job statuses:",
-      allJobs?.map((job) => ({ title: job.title, status: job.status }))
-    );
-    console.log("================================");
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
   }, [
     companyId,
     user,
@@ -119,17 +116,17 @@ const CompanyDetails = () => {
   }
 
   const handleJobClick = (jobId, job) => {
-    console.log("🔗 Job click handler called");
-    console.log("Job ID:", jobId);
-    console.log("Job data:", job);
-    console.log("User role:", user?.role);
-    console.log("User ID:", user?.id || user?._id);
-    console.log("Job posted by:", job?.postedBy);
+    
+    
+    
+    
+    
+    
 
     // Navigate to appropriate page based on user role
     if (user?.role === "candidate") {
       // Candidates go to job detail page
-      console.log("📍 Navigating to candidate job detail:", `/job/${jobId}`);
+      
       navigate(`/job/${jobId}`);
     } else if (user?.role === "recruiter") {
       // Check if user posted this job
@@ -138,38 +135,32 @@ const CompanyDetails = () => {
 
       if (canEdit) {
         // User can edit - go to edit page
-        console.log(
-          "📍 User can edit - navigating to edit job:",
-          `/recruiter/edit-job/${jobId}`
-        );
+        
         navigate(`/recruiter/edit-job/${jobId}`);
       } else {
         // User can only view - go to read-only view
-        console.log(
-          "📍 User can only view - navigating to job detail:",
-          `/recruiter/job/${jobId}`
-        );
+        
         navigate(`/recruiter/job/${jobId}`);
       }
     } else {
       // Fallback: redirect to login for unauthenticated users
-      console.log("📍 Navigating to login");
+      
       navigate("/auth/login");
     }
   };
 
   const handleViewAllJobs = () => {
-    console.log("🔗 View all jobs handler called");
-    console.log("User role:", user?.role);
-    console.log("Company ID:", company._id);
+    
+    
+    
 
     if (user?.role === "candidate") {
       const path = `/candidate/company/${company._id}/jobs`;
-      console.log("📍 Navigating to candidate company jobs:", path);
+      
       navigate(path);
     } else {
       const path = `/recruiter/company/${company._id}/jobs`;
-      console.log("📍 Navigating to recruiter company jobs:", path);
+      
       navigate(path);
     }
   };

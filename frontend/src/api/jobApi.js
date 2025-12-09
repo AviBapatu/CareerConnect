@@ -19,9 +19,9 @@ export const getMyJobPosts = () => {
 
 // Get jobs by company
 export const getJobsByCompany = (companyId) => {
-  console.log("🔍 API: getJobsByCompany called with companyId:", companyId);
+  
   const url = `/job?company=${companyId}`;
-  console.log("🔍 API: Request URL:", url);
+  
   return axios.get(url);
 };
 
@@ -52,11 +52,11 @@ export const applyToJob = (jobId, applicationData) => {
 
 // Get user's applications
 export const getMyApplications = async () => {
-  console.log("API call: getMyApplications");
+  
   try {
     const response = await axios.get("/job/my/applications");
-    console.log("Full API Response:", response);
-    console.log("Response data:", response.data);
+    
+    
     return response;
   } catch (error) {
     console.error("API Error:", error);

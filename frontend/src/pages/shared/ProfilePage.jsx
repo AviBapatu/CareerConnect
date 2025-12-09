@@ -55,34 +55,27 @@ const ProfilePage = () => {
   const { setResumeId } = useCompanyStore();
 
   // Debug: Log current auth state
-  console.log("ProfilePage - Current user:", user);
-  console.log("ProfilePage - Current token:", !!token);
-  console.log(
-    "ProfilePage - localStorage token:",
-    !!localStorage.getItem("token")
-  );
+  
+  
+  
 
   // Ensure token is set in axios headers if available
   React.useEffect(() => {
     const localToken = localStorage.getItem("token");
     const storeToken = token;
 
-    console.log("Token sync check:", {
-      localStorage: !!localToken,
-      zustandStore: !!storeToken,
-      axiosHeader: !!api.defaults.headers.common["Authorization"],
-    });
+    
 
     // If store has token but localStorage doesn't, sync them
     if (storeToken && !localToken) {
-      console.log("Syncing token from store to localStorage");
+      
       localStorage.setItem("token", storeToken);
     }
 
     // If we have a token but axios doesn't have the header, set it
     const tokenToUse = storeToken || localToken;
     if (tokenToUse && !api.defaults.headers.common["Authorization"]) {
-      console.log("Setting axios authorization header");
+      
       api.defaults.headers.common["Authorization"] = `Bearer ${tokenToUse}`;
     }
 
@@ -122,8 +115,8 @@ const ProfilePage = () => {
   const profile = profileResponse?.data || profileResponse;
 
   // Debug: Log the actual profile data structure
-  console.log("Raw profile response from API:", profileResponse);
-  console.log("Extracted profile data:", profile);
+  
+  
 
   const experienceForm = useForm({
     resolver: zodResolver(experienceSchema),
@@ -150,31 +143,28 @@ const ProfilePage = () => {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: (data) => {
-      console.log("About to call updateProfile API with:", data);
-      console.log("Current user state before API call:", user);
+      
+      
 
       // Check token from both localStorage and Zustand store
       const localToken = localStorage.getItem("token");
       const storeToken = useUserStore.getState().token;
-      console.log("Token from localStorage:", !!localToken);
-      console.log("Token from Zustand store:", !!storeToken);
-      console.log(
-        "axios auth header:",
-        api.defaults.headers.common["Authorization"]
-      );
+      
+      
+      
 
       return updateProfile(data);
     },
     onSuccess: (data) => {
-      console.log("Profile update success - full response:", data);
-      console.log("Response data property:", data.data);
-      console.log("Response data.user property:", data.data?.user);
+      
+      
+      
 
       // The backend returns { success: true, message: "...", user: {...} }
       // But axios wraps it in { data: { success: true, message: "...", user: {...} } }
       const userData = data.data?.user || data.user;
 
-      console.log("Final user data to set:", userData);
+      
 
       queryClient.invalidateQueries(["profile"]);
       if (userData) {
@@ -211,21 +201,21 @@ const ProfilePage = () => {
   const avatarUploadMutation = useMutation({
     mutationFn: uploadAvatar,
     onSuccess: (data) => {
-      console.log("Avatar upload success:", data);
-      console.log("Avatar upload - raw data:", data);
-      console.log("Avatar upload - data.data:", data.data);
-      console.log("Avatar upload - data.user:", data.user);
+      
+      
+      
+      
 
       queryClient.invalidateQueries(["profile"]);
 
       // Handle both old and new response structures
       const userData = data.data?.user || data.user;
-      console.log("Avatar upload - extracted userData:", userData);
-      console.log("Avatar upload - userData.avatarUrl:", userData?.avatarUrl);
+      
+      
 
       if (userData) {
         setUser(userData);
-        console.log("Avatar upload - setUser called with:", userData);
+        
       }
 
       setIsImageCropModalOpen(false);
@@ -243,7 +233,7 @@ const ProfilePage = () => {
   const resumeUploadMutation = useMutation({
     mutationFn: uploadResume,
     onSuccess: (data) => {
-      console.log("Resume upload success:", data);
+      
       queryClient.invalidateQueries(["profile"]);
 
       // Handle both old and new response structures
@@ -267,7 +257,7 @@ const ProfilePage = () => {
   const deleteResumeMutation = useMutation({
     mutationFn: deleteResume,
     onSuccess: (data) => {
-      console.log("Delete resume success:", data);
+      
       queryClient.invalidateQueries(["profile"]);
 
       // Handle both old and new response structures
@@ -291,7 +281,7 @@ const ProfilePage = () => {
   const deleteAvatarMutation = useMutation({
     mutationFn: deleteAvatar,
     onSuccess: (data) => {
-      console.log("Delete avatar success:", data);
+      
       queryClient.invalidateQueries(["profile"]);
 
       // Handle both old and new response structures
@@ -329,21 +319,17 @@ const ProfilePage = () => {
   // Handle avatar upload after cropping
   const handleAvatarUpload = async () => {
     try {
-      console.log("Starting avatar upload process...");
-      console.log("Image to crop:", !!imageToCrop);
-      console.log("Cropped area pixels:", croppedAreaPixels);
+      
+      
+      
 
       const croppedImage = await getCroppedImg(imageToCrop, croppedAreaPixels);
-      console.log("Cropped image blob:", croppedImage);
+      
 
       const file = new File([croppedImage], "avatar.jpg", {
         type: "image/jpeg",
       });
-      console.log("File created:", {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-      });
+      
 
       avatarUploadMutation.mutate(file);
     } catch (error) {
@@ -466,7 +452,7 @@ const ProfilePage = () => {
       }));
     }
 
-    console.log("Sending profile data:", profileData);
+    
     return profileData;
   };
 
@@ -477,7 +463,7 @@ const ProfilePage = () => {
       return;
     }
 
-    console.log("Experience data being added:", data);
+    
     const updatedExperience = [...(profile?.experience || [])];
 
     if (selectedExperienceIndex !== null) {
@@ -505,7 +491,7 @@ const ProfilePage = () => {
       return;
     }
 
-    console.log("Education data being added:", data);
+    
     const updatedEducation = [...(profile?.education || [])];
 
     if (selectedEducationIndex !== null) {
@@ -569,14 +555,11 @@ const ProfilePage = () => {
 
   const respondMutation = useMutation({
     mutationFn: ({ companyId, status }) => {
-      console.log("[DEBUG] Responding to company join request:", {
-        companyId,
-        status,
-      });
+      
       return respondToCompanyJoinRequest(companyId, status);
     },
     onSuccess: (data) => {
-      console.log("[DEBUG] Respond mutation success:", data);
+      
       toast.success("Response sent!");
       queryClient.invalidateQueries(["myCompanyJoinRequests"]);
       queryClient.invalidateQueries(["profile"]);

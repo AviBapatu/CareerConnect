@@ -61,14 +61,11 @@ const EditArticle = () => {
   // Update article mutation
   const updateMutation = useMutation({
     mutationFn: (data) => {
-      console.log("[EditArticle] updateMutation.mutationFn called", {
-        articleId,
-        data,
-      });
+      
       return updateArticle(articleId, data);
     },
     onSuccess: (data) => {
-      console.log("[EditArticle] updateMutation onSuccess", data);
+      
       queryClient.invalidateQueries(["article", articleId]);
       queryClient.invalidateQueries(["myArticles"]);
       toast.success("Article updated successfully!");
@@ -83,13 +80,11 @@ const EditArticle = () => {
   // Delete article mutation
   const deleteMutation = useMutation({
     mutationFn: () => {
-      console.log("[EditArticle] deleteMutation.mutationFn called", {
-        articleId,
-      });
+      
       return deleteArticle(articleId);
     },
     onSuccess: () => {
-      console.log("[EditArticle] deleteMutation onSuccess");
+      
       queryClient.invalidateQueries(["myArticles"]);
       toast.success("Article deleted successfully!");
       navigate("/recruiter/my-articles");
@@ -103,7 +98,7 @@ const EditArticle = () => {
   // Set form data when article is loaded
   useEffect(() => {
     if (article) {
-      console.log("[EditArticle] Loaded article:", article);
+      
       // Normalize category to match one of the categories exactly
       const matchedCategory =
         categories.find(
@@ -154,9 +149,9 @@ const EditArticle = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("[EditArticle] handleSubmit called");
-    console.log("[EditArticle] Current articleId:", articleId);
-    console.log("[EditArticle] Current formData:", formData);
+    
+    
+    
 
     // Basic validation
     if (!formData.title.trim()) {
@@ -177,9 +172,7 @@ const EditArticle = () => {
       return;
     }
 
-    console.log(
-      "[EditArticle] Validation passed, calling updateMutation.mutate"
-    );
+    
     updateMutation.mutate(formData);
   };
 

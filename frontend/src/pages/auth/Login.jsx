@@ -35,26 +35,19 @@ const Login = () => {
 
   const mutation = useMutation({
     mutationFn: async (data) => {
-      console.log("[MUTATION] Called with data:", data);
+      
       // Always use the data argument for email, password, and otp
       if (data.otp) {
         setOtpLoading(true);
-        console.log("[MUTATION] Sending login with OTP:", {
-          email: data.email,
-          password: data.password,
-          otp: data.otp,
-        });
+        
         const result = await login(data.email, data.password, data.otp);
         setOtpLoading(false);
-        console.log("[MUTATION] Login result (OTP):", result);
+        
         return result;
       } else {
-        console.log("[MUTATION] Sending login without OTP:", {
-          email: data.email,
-          password: data.password,
-        });
+        
         const result = await login(data.email, data.password);
-        console.log("[MUTATION] Login result (no OTP):", result);
+        
         return result;
       }
     },
@@ -76,7 +69,7 @@ const Login = () => {
         }
       }
       if (!result?.user) return; // Only proceed if user is present
-      console.log("🚀 Login Component: Login successful, result:", result);
+      
       toast.success("Login Successful");
 
       // Get the latest user and company data
@@ -119,28 +112,7 @@ const Login = () => {
         }
       }
 
-      console.log("🚀 Login Component: Navigation details:", {
-        userRole: user.role,
-        companyId,
-        hasCompany: !!(companyId || user.company),
-        destination,
-        from,
-        fromType: typeof from,
-        isRoleCompatible:
-          from && typeof from === "string"
-            ? (user.role === "candidate" &&
-                (from.startsWith("/candidate") ||
-                  from === "/dashboard" ||
-                  from.startsWith("/profile") ||
-                  from.startsWith("/job/"))) ||
-              (user.role === "recruiter" &&
-                (from.startsWith("/recruiter") ||
-                  from === "/dashboard" ||
-                  from.startsWith("/profile") ||
-                  from.startsWith("/jobs")))
-            : "N/A",
-        finalDestination,
-      });
+      
 
       navigate(finalDestination, { replace: true });
     },
@@ -162,22 +134,13 @@ const Login = () => {
   });
 
   const onSubmit = (data) => {
-    console.log(
-      "[onSubmit] called. showOtp:",
-      showOtp,
-      "pendingLogin:",
-      pendingLogin,
-      "otp:",
-      otp,
-      "data:",
-      data
-    );
+    
     if (showOtp && pendingLogin.email && pendingLogin.password) {
       const payload = { ...pendingLogin, otp };
-      console.log("[onSubmit] Submitting OTP verification payload:", payload);
+      
       mutation.mutate(payload);
     } else {
-      console.log("[onSubmit] Submitting login payload:", data);
+      
       mutation.mutate(data);
     }
   };

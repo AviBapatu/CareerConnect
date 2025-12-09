@@ -121,7 +121,7 @@ const ExploreCompanies = ({ userRole = "recruiter" }) => {
   ];
 
   const handleViewJobs = (company) => {
-    console.log("View jobs for company:", company.name);
+    
     const route =
       userRole === "candidate"
         ? `/candidate/company/${company._id}/jobs`
@@ -130,7 +130,7 @@ const ExploreCompanies = ({ userRole = "recruiter" }) => {
   };
 
   const handleViewDetails = (company) => {
-    console.log("View details for company:", company.name);
+    
     const route =
       userRole === "candidate"
         ? `/candidate/company/${company._id}`

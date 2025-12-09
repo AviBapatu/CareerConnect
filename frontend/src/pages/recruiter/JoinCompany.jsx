@@ -60,7 +60,7 @@ const JoinCompany = () => {
   // Debug: Log join requests data
   useEffect(() => {
     if (joinRequests.length > 0) {
-      console.log("📋 Join requests data:", joinRequests);
+      
     }
   }, [joinRequests]);
 
@@ -115,7 +115,7 @@ const JoinCompany = () => {
        lastAcceptedCompanyRef.current !== acceptedRequest.companyId);
     
     if (isNewAcceptance && !notificationShownRef.current) {
-      console.log("🎉 Acceptance notification - company data:", acceptedRequest);
+      
       const companyName = acceptedRequest.companyName;
       toast.success(
         `You have been accepted into ${companyName}! Redirecting to dashboard...`

@@ -149,9 +149,9 @@ const JobsDashboard = () => {
   const handleEditClick = (e, jobId) => {
     e.stopPropagation();
     e.preventDefault();
-    console.log("Edit button clicked for job:", jobId);
-    console.log("Current location:", window.location.pathname);
-    console.log("Navigating to:", `/recruiter/edit-job/${jobId}`);
+    
+    
+    
 
     // Use React Router navigation
     navigate(`/recruiter/edit-job/${jobId}`);

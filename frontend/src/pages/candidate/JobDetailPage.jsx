@@ -26,13 +26,7 @@ const JobDetailPage = () => {
 
   // Debug log the user and resume data on component mount and when they change
   useEffect(() => {
-    console.log("JobDetailPage - User data:", {
-      user,
-      resumeUrl,
-      userResumeUrl: user?.resumeUrl,
-      userResume: user?.resume,
-      hasResume: !!(resumeUrl || user?.resumeUrl || user?.resume),
-    });
+    
   }, [user, resumeUrl]);
 
   // Helper function to get resume URL from multiple possible sources
@@ -59,12 +53,7 @@ const JobDetailPage = () => {
   // Debug log to understand job structure
   useEffect(() => {
     if (job) {
-      console.log("Job object structure:", {
-        job,
-        company: job.company,
-        companyId: job.companyId,
-        companyName: job.companyName,
-      });
+      
     }
   }, [job]);
 
@@ -99,14 +88,7 @@ const JobDetailPage = () => {
   const hasApplied = !!applicationResponse?.data;
 
   // Debug logging
-  console.log("Application check:", {
-    applicationResponse,
-    applicationError,
-    hasApplied,
-    user: !!user,
-    jobId,
-    rawApplicationData: applicationResponse?.data,
-  });
+  
   */
 
   const hasApplied = hasAppliedLocally;
@@ -156,13 +138,7 @@ const JobDetailPage = () => {
     const userResumeUrl = getResumeUrl();
 
     // Debug logging to check what resume data we have
-    console.log("Resume check:", {
-      resumeUrl,
-      userResumeUrl: user?.resumeUrl,
-      userResume: user?.resume,
-      finalResumeUrl: userResumeUrl,
-      fullUser: user,
-    });
+    
 
     if (!userResumeUrl) {
       toast.error(
@@ -172,7 +148,7 @@ const JobDetailPage = () => {
       return;
     }
 
-    console.log("Using resume URL:", userResumeUrl);
+    
 
     // Application data using user's resume from store
     const applicationData = {

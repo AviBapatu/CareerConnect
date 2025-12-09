@@ -36,9 +36,9 @@ const PostJob = () => {
 
   const isEditMode = !!jobId;
 
-  console.log("PostJob component loaded");
-  console.log("jobId from params:", jobId);
-  console.log("isEditMode:", isEditMode);
+  
+  
+  
 
   // Fetch job data when in edit mode
   const {
@@ -48,12 +48,12 @@ const PostJob = () => {
   } = useQuery({
     queryKey: ["job", jobId],
     queryFn: () => {
-      console.log("Fetching job data for jobId:", jobId);
+      
       return getJobById(jobId);
     },
     enabled: isEditMode,
     onSuccess: (data) => {
-      console.log("Successfully fetched job data:", data);
+      
     },
     onError: (error) => {
       console.error("Error fetching job data:", error);
@@ -88,7 +88,7 @@ const PostJob = () => {
   useEffect(() => {
     if (isEditMode && jobData?.data) {
       const job = jobData.data;
-      console.log("Populating form with job data:", job);
+      
 
       reset({
         title: job.title || "",
@@ -117,11 +117,11 @@ const PostJob = () => {
 
   // Check if user has permission to post jobs
   useEffect(() => {
-    console.log("Permission check - user:", user);
-    console.log("Permission check - companyRole:", companyRole);
+    
+    
 
     if (!user || user.role !== "recruiter") {
-      console.log("Redirecting: User is not a recruiter");
+      
       toast.error("You must be a recruiter to post jobs");
       navigate("/jobs");
       return;
@@ -131,13 +131,13 @@ const PostJob = () => {
       !companyRole ||
       (companyRole !== "admin" && companyRole !== "recruiter")
     ) {
-      console.log("Redirecting: User doesn't have proper company role");
+      
       toast.error("You don't have permission to post jobs");
       navigate("/jobs");
       return;
     }
 
-    console.log("Permission check passed");
+    
   }, [user, companyRole, navigate]);
 
   // Post job mutation
@@ -218,7 +218,7 @@ const PostJob = () => {
         status: isDraftSubmission ? "closed" : "active", // Save as draft sets status to closed
       };
 
-      console.log("Submitting job data:", jobData);
+      
 
       if (isEditMode) {
         await editJobMutation.mutateAsync({ id: jobId, data: jobData });
