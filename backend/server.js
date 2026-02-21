@@ -15,8 +15,6 @@ import cors from "cors";
 import "./models/Company.js";
 import "./models/User.js";
 import listEndpoints from "express-list-endpoints";
-import Job from "./models/Job.js";
-import Application from "./models/Application.js";
 
 dotenv.config();
 
@@ -57,9 +55,6 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-
-await Job.syncIndexes();
-await Application.syncIndexes();
 
 try {
   app.listen(PORT, () => {

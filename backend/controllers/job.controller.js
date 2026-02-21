@@ -91,6 +91,16 @@ export const applyToJob = async (req, res) => {
       "Failed to submit application"
     );
 
+    await catchAndWrap(
+      () =>
+        Job.findByIdAndUpdate(
+          jobId,
+          { $push: { applications: applicationArr[0]._id } },
+          { session }
+        ),
+      "Failed to update job with application"
+    );
+
     await session.commitTransaction();
     session.endSession();
 
