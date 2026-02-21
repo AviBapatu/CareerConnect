@@ -26,6 +26,7 @@ import {
   inviteUserToCompany,
 } from "../controllers/company.controller.js";
 import { logoUpload, coverUpload } from "../middleware/multer.js";
+import { actionLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
@@ -55,12 +56,12 @@ router.get("/search", searchCompaniesByName);
 router.get("/my/:companyId", getCompanyById);
 router.get("/:id/me-role", getMyCompanyRole);
 
-router.post("/create", role("recruiter"), createCompany);
+router.post("/create", role("recruiter"), actionLimiter, createCompany);
 
 router.put("/update/:companyId", checkCompanyRole("admin"), updateCompany);
 router.delete("/delete/:companyId", checkCompanyRole("admin"), deleteCompany);
 
-router.post("/:companyId/request", requestToJoinCompany);
+router.post("/:companyId/request", actionLimiter, requestToJoinCompany);
 router.get(
   "/:companyId/requests",
   checkCompanyRole("admin", "recruiter"),
@@ -91,6 +92,7 @@ router.delete(
 router.post(
   "/:companyId/invite",
   checkCompanyRole("admin", "recruiter"),
+  actionLimiter,
   inviteUserToCompany
 );
 

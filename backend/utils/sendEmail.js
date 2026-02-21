@@ -1,54 +1,58 @@
-import resend from "../config/resend.js";
+import { logger } from "./logger.js";
+import SibApiV3Sdk from "sib-api-v3-sdk";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const client = SibApiV3Sdk.ApiClient.instance;
+client.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
+const emailApi = new SibApiV3Sdk.TransactionalEmailsApi();
+
+export const sendEmail = async (to, subject, html) => {
+  await emailApi.sendTransacEmail({
+    sender: {
+      email: "connectcareer01@gmail.com",
+      name: "CareerConnect",
+    },
+    to: [{ email: to }],
+    subject,
+    htmlContent: html,
+  });
+};
 
 export const sendPasswordReset = async (email, resetURL) => {
   try {
-    const data = await resend.emails.send({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Password Reset Link",
-      html: `
-        <p>Click below to reset your password. This link is valid for 60 minutes:</p>
-        <a href="${resetURL}">${resetURL}</a>
-      `,
-    });
-    console.log("Password reset email sent:", data);
+    const html = `
+      <p>Click below to reset your password. This link is valid for 60 minutes:</p>
+      <a href="${resetURL}">${resetURL}</a>
+    `;
+    await sendEmail(email, "Password Reset Link", html);
+    logger.info("Password reset email sent");
   } catch (error) {
-    console.error("Error sending password reset email:", error);
-    // Don't throw for now to avoid crashing auth flow, but log it.
+    logger.error("Error sending password reset email:", error);
   }
 };
 
 export const sendCustomEmail = async (to, subject, html) => {
   try {
-    const data = await resend.emails.send({
-      from: process.env.EMAIL_USER,
-      to,
-      subject,
-      html,
-    });
-    console.log("Custom email sent:", data);
+    await sendEmail(to, subject, html);
+    logger.info("Custom email sent");
   } catch (error) {
-    console.error("Error sending custom email:", error);
+    logger.error("Error sending custom email:", error);
   }
 };
 
 export const send2FAOtp = async (email, otp) => {
   try {
-    const data = await resend.emails.send({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Your CareerConnect 2FA Verification Code",
-      html: `
-        <p>Your verification code is:</p>
-        <h2 style="font-size:2rem;letter-spacing:0.2em;">${otp}</h2>
-        <p>This code is valid for 10 minutes. If you did not request this, please ignore this email.</p>
-      `,
-    });
-    console.log("2FA OTP email sent:", data);
+    const html = `
+      <p>Your verification code is:</p>
+      <h2 style="font-size:2rem;letter-spacing:0.2em;">${otp}</h2>
+      <p>This code is valid for 10 minutes. If you did not request this, please ignore this email.</p>
+    `;
+    await sendEmail(email, "Your CareerConnect 2FA Verification Code", html);
+    logger.info("2FA OTP email sent");
   } catch (error) {
-    console.error("Error sending 2FA OTP email:", error);
-    // Throwing error here usually stops the 2FA flow, which might be desired if email fails.
-    // But for a migration, let's keep it safe. Use simple rethrow if critical.
+    logger.error("Error sending 2FA OTP email:", error);
     throw error;
   }
 };

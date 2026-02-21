@@ -1,3 +1,4 @@
+import { logger } from "./logger.js";
 import { AppError } from "./AppError.js";
 
 export const catchAndWrap = async (fn, fallbackMessage, statusCode = 500) => {
@@ -6,7 +7,7 @@ export const catchAndWrap = async (fn, fallbackMessage, statusCode = 500) => {
   } catch (err) {
     if (err instanceof AppError) throw err;
 
-    console.error("Error caught in catchAndWrap:", err);
+    logger.error("Error caught in catchAndWrap:", err);
 
     throw new AppError(fallbackMessage, statusCode);
   }

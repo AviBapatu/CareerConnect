@@ -63,5 +63,11 @@ const jobSchema = new Schema(
   { timestamps: true }
 );
 
+jobSchema.index({ title: 1 });
+jobSchema.index({ location: 1 });
+jobSchema.index({ company: 1 });
+jobSchema.index({ createdAt: -1 });
+jobSchema.index({ location: 1, createdAt: -1 });
+
 const Job = model("Job", jobSchema);
 export default Job;

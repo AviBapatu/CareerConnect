@@ -129,7 +129,7 @@ export const getDashboardStats = async (req, res) => {
       data: stats,
     });
   } catch (error) {
-    console.error("Dashboard stats error:", error);
+    req.log.error("Dashboard stats error:", error);
     throw new AppError("Failed to fetch dashboard statistics", 500);
   }
 };

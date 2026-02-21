@@ -79,7 +79,8 @@ export const getCandidateDashboardStats = async (req, res) => {
         })
           .populate("company", "name logoUrl")
           .sort({ createdAt: -1 })
-          .limit(5),
+          .limit(5)
+          .lean(),
       "Failed to fetch recent jobs"
     );
 
@@ -103,7 +104,7 @@ export const getCandidateDashboardStats = async (req, res) => {
       data: stats,
     });
   } catch (error) {
-    console.error("Candidate dashboard stats error:", error);
+    req.log.error("Candidate dashboard stats error:", error);
     throw new AppError("Failed to fetch candidate dashboard statistics", 500);
   }
 };
@@ -123,7 +124,8 @@ export const getRecentApplications = async (req, res) => {
           },
         })
         .sort({ createdAt: -1 })
-        .limit(5),
+        .limit(5)
+        .lean(),
     "Failed to fetch recent applications"
   );
 
@@ -158,13 +160,14 @@ export const getRecommendedJobs = async (req, res) => {
       })
         .populate("company", "name logoUrl industry")
         .sort({ createdAt: -1 })
-        .limit(6),
+        .limit(6)
+        .lean(),
     "Failed to fetch recommended jobs"
   );
 
   // Add recommendation score (simplified)
   const jobsWithScore = recommendedJobs.map((job) => ({
-    ...job.toObject(),
+    ...job,
     recommendationScore: Math.floor(Math.random() * 40) + 60, // 60-100%
     matchReason: "Based on your profile and preferences",
   }));

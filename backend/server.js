@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import dotenv from "dotenv";
 import { errorHandler } from "./middleware/error.js";
 import connectDB from "./config/connectDB.js";
@@ -11,17 +12,25 @@ import jobRoutes from "./routes/job.routes.js";
 import articleRoutes from "./routes/article.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
 import candidateDashboardRoutes from "./routes/candidateDashboard.routes.js";
+import healthRoutes from "./routes/health.routes.js";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import "./models/Company.js";
 import "./models/User.js";
 import listEndpoints from "express-list-endpoints";
+import { globalLimiter } from "./middleware/rateLimiter.js";
+import { requestLogger } from "./middleware/requestLogger.js";
+import { logger } from "./utils/logger.js";
 
 dotenv.config();
 
 const app = express();
 
+app.set("trust proxy", 1);
+
 app.use(helmet());
 app.use(express.json());
+app.use(cookieParser());
 
 app.use(
   cors({
@@ -31,11 +40,9 @@ app.use(
 );
 
 connectDB();
-app.use((req, res, next) => {
-  console.log(`[${req.method}] ${req.originalUrl}`);
-  next();
-});
+app.use(requestLogger);
 
+app.use("/api", globalLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/connection", connectionRoutes);
@@ -44,6 +51,8 @@ app.use("/api/job", jobRoutes);
 app.use("/api/article", articleRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/candidate-dashboard", candidateDashboardRoutes);
+
+app.use("/api", healthRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
@@ -57,10 +66,30 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 try {
-  app.listen(PORT, () => {
-    console.log(`Server is up Baby! Running on ${PORT}`);
+  const server = app.listen(PORT, () => {
+    logger.info(`Server is up Baby! Running on ${PORT}`);
   });
+
+  const shutdown = async (signal) => {
+    logger.info(`Received ${signal}. Closing server...`);
+
+    server.close(async () => {
+      logger.info("HTTP server closed");
+
+      try {
+        await mongoose.connection.close(false);
+        logger.info("MongoDB connection closed");
+        process.exit(0);
+      } catch (err) {
+        logger.error("Error closing MongoDB:", err);
+        process.exit(1);
+      }
+    });
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 } catch (err) {
-  console.error(`Server failed to start ${err}`);
+  logger.error("Server failed to start", err);
   process.exit(1);
 }

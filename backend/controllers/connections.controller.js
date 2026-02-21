@@ -15,7 +15,7 @@ const searchUsersForConnection = async (req, res) => {
   const search = req.query.search?.trim();
   const companyId = req.query.companyId;
 
-  console.log("[DEBUG] searchUsersForConnection - search:", search, "companyId:", companyId);
+  req.log.info("[DEBUG] searchUsersForConnection - search:", search, "companyId:", companyId);
 
   if (!search) throw new AppError("Search query is required", 400);
 
@@ -39,19 +39,19 @@ const searchUsersForConnection = async (req, res) => {
       const companyObjectId = new mongoose.Types.ObjectId(companyId);
       const applicantUserIds = await Application.distinct("user", { company: companyObjectId });
 
-      console.log("[DEBUG] Applicant userIds for company:", companyId, applicantUserIds);
+      req.log.info("[DEBUG] Applicant userIds for company:", companyId, applicantUserIds);
 
       if (applicantUserIds.length > 0) {
         userQuery._id.$in = applicantUserIds; // Add condition only if applicants exist
       } else {
-        console.log("[DEBUG] No applicants found for this company");
+        req.log.info("[DEBUG] No applicants found for this company");
       }
     } catch (err) {
-      console.error("[ERROR] Invalid companyId format:", err);
+      req.log.error("[ERROR] Invalid companyId format:", err);
     }
   }
 
-  console.log("[DEBUG] Final userQuery:", JSON.stringify(userQuery));
+  req.log.info("[DEBUG] Final userQuery:", JSON.stringify(userQuery));
 
   // Fetch users
   const users = await catchAndWrap(
@@ -59,7 +59,7 @@ const searchUsersForConnection = async (req, res) => {
     "Failed to search users"
   );
 
-  console.log("[DEBUG] Users found:", users.length);
+  req.log.info("[DEBUG] Users found:", users.length);
 
   const userIds = users.map((u) => u._id);
 
@@ -275,8 +275,8 @@ const removeConnection = async (req, res) => {
   }
   const { userId: otherUserId } = parsed.data.params;
   const currentUserId = req.user?.id;
-  console.log(`Other UserID: ${otherUserId}`);
-  console.log(`current UserID: ${currentUserId}`);
+  req.log.info(`Other UserID: ${otherUserId}`);
+  req.log.info(`current UserID: ${currentUserId}`);
 
   if (!currentUserId || !otherUserId) {
     throw new AppError("Invalid user ID(s)", 400);

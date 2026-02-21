@@ -2,8 +2,11 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import User from "../models/User.js";
 import PendingUser from "../models/PendingUser.js";
+import Otp from "../models/Otp.js";
+import PasswordResetToken from "../models/PasswordResetToken.js";
 import { AppError } from "../utils/AppError.js";
-import { signToken } from "../utils/jwt.js";
+import RefreshToken from "../models/RefreshToken.js";
+import { signAccessToken, signRefreshToken } from "../utils/token.js";
 import { catchAndWrap } from "../utils/catchAndWrap.js";
 import { sendPasswordReset } from "../utils/sendEmail.js";
 import { send2FAOtp } from "../utils/sendEmail.js";
@@ -35,8 +38,6 @@ const registerUser = async (req, res) => {
   // Generate OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
-  const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 min
-
   // Store in PendingUser
   const pending = await PendingUser.create({
     name,
@@ -44,7 +45,6 @@ const registerUser = async (req, res) => {
     password: hashed,
     role,
     twoFactorTempSecret: hashedOtp,
-    twoFactorOTPExpires: otpExpires,
   });
   await send2FAOtp(email, otp);
 
@@ -63,12 +63,16 @@ const verifySignup2FA = async (req, res) => {
     return res
       .status(404)
       .json({ success: false, message: "Pending registration not found" });
-  if (!pending.twoFactorTempSecret || !pending.twoFactorOTPExpires)
+  if (!pending.twoFactorTempSecret)
     return res
       .status(400)
       .json({ success: false, message: "No OTP requested." });
-  if (pending.twoFactorOTPExpires < new Date())
+
+  const isExpired = Date.now() - pending.createdAt.getTime() > 10 * 60 * 1000;
+  if (isExpired) {
+    await pending.deleteOne();
     return res.status(400).json({ success: false, message: "OTP expired." });
+  }
   const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
   if (hashedOtp !== pending.twoFactorTempSecret)
     return res.status(400).json({ success: false, message: "Invalid OTP." });
@@ -84,10 +88,28 @@ const verifySignup2FA = async (req, res) => {
   // Remove pending registration by email
   await PendingUser.deleteOne({ email: pending.email });
 
-  const token = signToken({ id: user._id, role: user.role });
+  const accessToken = signAccessToken(user._id);
+  const refreshToken = signRefreshToken();
+
+  const hashed = crypto
+    .createHash("sha256")
+    .update(refreshToken)
+    .digest("hex");
+
+  await RefreshToken.create({
+    user: user._id,
+    token: hashed
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict"
+  });
+
   res.status(200).json({
     message: "Registration successful",
-    token,
+    accessToken,
     user: {
       id: user._id,
       name: user.name,
@@ -109,9 +131,12 @@ const enable2FA = async (req, res) => {
   // Generate OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
-  user.twoFactorTempSecret = hashedOtp;
-  user.twoFactorOTPExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 min
-  await user.save();
+
+  await Otp.create({
+    user: user._id,
+    otp: hashedOtp,
+  });
+
   await send2FAOtp(user.email, otp);
   res.status(200).json({ success: true, message: "OTP sent to your email." });
 };
@@ -121,49 +146,48 @@ const verify2FA = async (req, res) => {
   const user = await User.findById(req.user.id);
   if (!user)
     return res.status(404).json({ success: false, message: "User not found" });
-  if (!user.twoFactorTempSecret || !user.twoFactorOTPExpires)
-    return res
-      .status(400)
-      .json({ success: false, message: "No OTP requested." });
-  if (user.twoFactorOTPExpires < new Date())
-    return res.status(400).json({ success: false, message: "OTP expired." });
+  const otpDoc = await Otp.findOne({ user: user._id });
+
+  if (!otpDoc)
+    return res.status(400).json({ success: false, message: "OTP expired or not requested." });
+
   const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
-  if (hashedOtp !== user.twoFactorTempSecret)
+  if (otpDoc.otp !== hashedOtp)
     return res.status(400).json({ success: false, message: "Invalid OTP." });
+
   user.twoFactorEnabled = true;
-  user.twoFactorTempSecret = undefined;
-  user.twoFactorOTPExpires = undefined;
   await user.save();
+  await otpDoc.deleteOne();
   res.status(200).json({ success: true, message: "2FA enabled successfully." });
 };
 
 // 2FA login step: after password, send OTP
 const loginUser = async (req, res) => {
-  console.log("[loginUser] Request body:", req.body);
+  req.log.info("[loginUser] Request body:", req.body);
   const result = logInSchema.safeParse(req.body);
   if (!result.success) {
-    console.log("[loginUser] Invalid input:", result.error);
+    req.log.info("[loginUser] Invalid input:", result.error);
     throw new AppError("Invalid Input", 400);
   }
 
   const { email, password, otp } = result.data;
-  console.log("[loginUser] Parsed data:", { email, password, otp });
+  req.log.info("[loginUser] Parsed data:", { email, password, otp });
 
   const user = await User.findOne({ email });
   if (!user) {
-    console.log("[loginUser] User not found for email:", email);
+    req.log.info("[loginUser] User not found for email:", email);
     throw new AppError("Invalid email or password", 401);
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
-    console.log("[loginUser] Password mismatch for email:", email);
+    req.log.info("[loginUser] Password mismatch for email:", email);
     throw new AppError("Invalid email or password", 401);
   }
 
   // If 2FA is enabled, require OTP
   if (user.twoFactorEnabled) {
-    console.log("[loginUser] 2FA is enabled for user:", email);
+    req.log.info("[loginUser] 2FA is enabled for user:", email);
     // If OTP is not provided, send OTP and require it
     if (!otp) {
       const generatedOtp = Math.floor(
@@ -173,17 +197,20 @@ const loginUser = async (req, res) => {
         .createHash("sha256")
         .update(generatedOtp)
         .digest("hex");
-      user.twoFactorTempSecret = hashedOtp;
-      user.twoFactorOTPExpires = new Date(Date.now() + 10 * 60 * 1000);
-      await user.save();
-      console.log(
+
+      await Otp.create({
+        user: user._id,
+        otp: hashedOtp,
+      });
+
+      req.log.info(
         "[loginUser] Generated and saved OTP for user:",
         email,
         "OTP:",
         generatedOtp
       );
       await send2FAOtp(user.email, generatedOtp);
-      console.log("[loginUser] Sent OTP email to:", user.email);
+      req.log.info("[loginUser] Sent OTP email to:", user.email);
       return res.status(206).json({
         success: false,
         message: "OTP sent to your email. Please verify to complete login.",
@@ -191,45 +218,62 @@ const loginUser = async (req, res) => {
       });
     } else {
       // Verify OTP
-      console.log(
+      req.log.info(
         "[loginUser] Verifying OTP for user:",
         email,
         "OTP provided:",
         otp
       );
-      if (!user.twoFactorTempSecret || !user.twoFactorOTPExpires) {
-        console.log("[loginUser] No OTP requested for user:", email);
-        throw new AppError("No OTP requested.", 400);
+
+      const otpDoc = await Otp.findOne({ user: user._id });
+
+      if (!otpDoc) {
+        req.log.info("[loginUser] OTP expired or not requested for user:", email);
+        throw new AppError("OTP expired or not requested.", 400);
       }
-      if (user.twoFactorOTPExpires < new Date()) {
-        console.log("[loginUser] OTP expired for user:", email);
-        throw new AppError("OTP expired.", 400);
-      }
+
       const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
-      if (hashedOtp !== user.twoFactorTempSecret) {
-        console.log(
+
+      if (otpDoc.otp !== hashedOtp) {
+        req.log.info(
           "[loginUser] Invalid OTP for user:",
           email,
           "Provided:",
-          otp,
-          "Expected:",
-          user.twoFactorTempSecret
+          otp
         );
         throw new AppError("Invalid OTP.", 400);
       }
-      user.twoFactorTempSecret = undefined;
-      user.twoFactorOTPExpires = undefined;
-      await user.save();
-      console.log("[loginUser] OTP validated and cleared for user:", email);
+
+      await otpDoc.deleteOne();
+      req.log.info("[loginUser] OTP validated and cleared for user:", email);
     }
   }
 
-  const token = signToken({ id: user._id, role: user.role });
-  console.log("[loginUser] Login successful for user:", email);
+  const accessToken = signAccessToken(user._id);
+  const refreshToken = signRefreshToken();
+
+  const hashed = crypto
+    .createHash("sha256")
+    .update(refreshToken)
+    .digest("hex");
+
+  await RefreshToken.create({
+    user: user._id,
+    token: hashed
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict"
+  });
+
+  req.log.info("[loginUser] Login successful for user:", email);
 
   res.status(200).json({
+    success: true,
     message: "Login successful",
-    token,
+    accessToken,
     user: {
       id: user._id,
       name: user.name,
@@ -273,18 +317,18 @@ const getMe = async (req, res) => {
 const updateMe = async (req, res) => {
   const userId = req.user._id;
   const { role } = req.body;
-  console.log(role);
+  req.log.info(role);
   if (!role || !["candidate", "recruiter"].includes(role)) {
     return res.status(400).json({ success: false, message: "Invalid role." });
   }
   const user = await User.findById(userId).populate("company");
-  console.log(user._id);
+  req.log.info(user._id);
   if (!user) {
     return res.status(404).json({ success: false, message: "User not found." });
   }
   user.role = role;
 
-  console.log(user.role);
+  req.log.info(user.role);
   await user.save();
 
   // Return the same format as getMe for consistency
@@ -301,7 +345,19 @@ const updateMe = async (req, res) => {
 };
 
 const logOut = async (req, res) => {
-  res.status(200).json({ message: "Logged out" });
+  const token = req.cookies?.refreshToken;
+
+  if (token) {
+    const hashed = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    await RefreshToken.deleteOne({ token: hashed });
+  }
+
+  res.clearCookie("refreshToken");
+  res.status(200).json({ success: true, message: "Logged out" });
 };
 
 const updateUserRole = async (req, res) => {
@@ -342,9 +398,10 @@ const forgotPassword = async (req, res) => {
   const token = crypto.randomBytes(32).toString("hex");
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-  user.resetPasswordToken = hashedToken;
-  user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-  await user.save();
+  await PasswordResetToken.create({
+    user: user._id,
+    token: hashedToken
+  });
 
   const resetURL = `${process.env.FRONTEND_URL}/auth/reset-password/${token}/${user._id}`;
   await sendPasswordReset(email, resetURL);
@@ -371,23 +428,22 @@ const resetPassword = async (req, res) => {
 
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-  const user = await catchAndWrap(
-    () =>
-      res.status(200).json({
-        message: "Login successful",
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          company: user.company,
-          companyRole: user.companyRole,
-          resumeUrl: user.resumeUrl || null,
-        },
-      }));
+  const resetDoc = await PasswordResetToken.findOne({ user: id });
+  if (!resetDoc) {
+    throw new AppError("Token invalid or expired", 400);
+  }
+  if (resetDoc.token !== hashedToken) {
+    throw new AppError("Token invalid or expired", 400);
+  }
 
+  const user = await User.findById(id);
+  if (!user) throw new AppError("User not found", 404);
+
+  user.password = await bcrypt.hash(password, 10);
   await user.save();
+  await resetDoc.deleteOne();
+
+  await RefreshToken.deleteMany({ user: user._id });
 
   res.status(200).json({ message: "Password was reset successfully." });
 };
@@ -401,12 +457,45 @@ const disable2FA = async (req, res) => {
       .status(400)
       .json({ success: false, message: "2FA is not enabled." });
   user.twoFactorEnabled = false;
-  user.twoFactorTempSecret = undefined;
-  user.twoFactorOTPExpires = undefined;
   await user.save();
+  await Otp.deleteMany({ user: user._id });
   res
     .status(200)
     .json({ success: true, message: "2FA disabled successfully." });
+};
+
+const refreshAccessToken = async (req, res) => {
+  const token = req.cookies?.refreshToken;
+
+  if (!token) throw new AppError("Unauthorized", 401);
+
+  const hashed = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
+
+  const stored = await RefreshToken.findOne({ token: hashed });
+
+  if (!stored) throw new AppError("Invalid session", 401);
+
+  const newAccessToken = signAccessToken(stored.user);
+
+  const newRefreshToken = signRefreshToken();
+  const newHashed = crypto
+    .createHash("sha256")
+    .update(newRefreshToken)
+    .digest("hex");
+
+  stored.token = newHashed;
+  await stored.save();
+
+  res.cookie("refreshToken", newRefreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict"
+  });
+
+  res.json({ accessToken: newAccessToken });
 };
 
 export {
@@ -422,4 +511,5 @@ export {
   disable2FA,
   verifySignup2FA,
   updateMe,
+  refreshAccessToken,
 };

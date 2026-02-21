@@ -24,20 +24,25 @@ import {
 import { authentication } from "../middleware/auth.js";
 import { role } from "../middleware/role.js";
 import { checkCompanyRole } from "../middleware/companyRole.js";
+import { actionLimiter } from "../middleware/rateLimiter.js";
 
 const router = Router();
 router.use(authentication);
 
 router.post(
   "/post",
+  authentication,
   role("recruiter", "admin"),
   checkCompanyRole("recruiter", "admin"),
+  actionLimiter,
   postJob
 ); //
 router.put(
   "/:id",
+  authentication,
   role("recruiter", "admin"),
   checkCompanyRole("recruiter", "admin"),
+  actionLimiter,
   editJob
 );
 router.get("/my-posts", getMyJobPosts);
@@ -76,12 +81,13 @@ router.post(
   "/:applicationId/send-status-email",
   role("recruiter"),
   checkCompanyRole("recruiter", "admin"),
+  actionLimiter,
   sendApplicationStatusEmail
 );
 
 router.get("/posts", getJobPosts); //
 router.get("/status/:jobId", getJobStatus); //
-router.post("/apply/:jobId", applyToJob); //
+router.post("/apply/:jobId", actionLimiter, applyToJob); //
 
 router.get("/my/applications", getAllMyApplications); //
 router.get("/my/applications/:jobId", getAApplication); //
