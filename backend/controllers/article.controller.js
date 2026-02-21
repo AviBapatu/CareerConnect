@@ -16,7 +16,7 @@ export const createArticle = async (req, res) => {
     throw new AppError("Validation failed", 400, parsed.error.errors);
   }
 
-  //   console.log(parsed.data, req.user.id);
+  //   req.log.info(parsed.data, req.user.id);
 
   const article = await catchAndWrap(
     () =>
@@ -42,11 +42,11 @@ export const getMyArticles = async (req, res) => {
 };
 
 export const getAllArticles = async (req, res) => {
-  console.log("🐛 DEBUG - getAllArticles called with query:", req.query);
+  req.log.info("🐛 DEBUG - getAllArticles called with query:", req.query);
 
   const { filter, skip, limit, sort } = articleOptions(req.query);
 
-  console.log("🐛 DEBUG - Processed query options:", {
+  req.log.info("🐛 DEBUG - Processed query options:", {
     filter,
     skip,
     limit,
@@ -68,14 +68,14 @@ export const getAllArticles = async (req, res) => {
 
           let populatedAuthor = null;
 
-          console.log("🐛 DEBUG - Article authorType:", article.authorType);
-          console.log("🐛 DEBUG - Article author ID:", article.author);
+          req.log.info("🐛 DEBUG - Article authorType:", article.authorType);
+          req.log.info("🐛 DEBUG - Article author ID:", article.author);
 
           if (article.authorType === "User" || article.authorType === "user") {
             populatedAuthor = await User.findById(article.author).select(
               "name email"
             );
-            console.log("🐛 DEBUG - Found User author:", populatedAuthor);
+            req.log.info("🐛 DEBUG - Found User author:", populatedAuthor);
           } else if (
             article.authorType === "Company" ||
             article.authorType === "company"
@@ -83,14 +83,14 @@ export const getAllArticles = async (req, res) => {
             populatedAuthor = await Company.findById(article.author).select(
               "name email"
             );
-            console.log("🐛 DEBUG - Found Company author:", populatedAuthor);
+            req.log.info("🐛 DEBUG - Found Company author:", populatedAuthor);
           }
 
           // Convert to plain object and add populated author
           const articleObj = article.toObject();
           articleObj.author = populatedAuthor;
 
-          console.log("🐛 DEBUG - Final article with author:", {
+          req.log.info("🐛 DEBUG - Final article with author:", {
             title: articleObj.title,
             authorType: articleObj.authorType,
             author: articleObj.author,
@@ -108,9 +108,9 @@ export const getAllArticles = async (req, res) => {
     ),
   ]);
 
-  console.log("🐛 DEBUG - Found articles:", articles.length);
-  console.log("🐛 DEBUG - Total articles matching filter:", totalArticles);
-  console.log("🐛 DEBUG - Sample article (first):", articles[0]);
+  req.log.info("🐛 DEBUG - Found articles:", articles.length);
+  req.log.info("🐛 DEBUG - Total articles matching filter:", totalArticles);
+  req.log.info("🐛 DEBUG - Sample article (first):", articles[0]);
 
   const totalPages = Math.ceil(totalArticles / limit);
   const currentPage = Math.floor(skip / limit) + 1;
@@ -124,7 +124,7 @@ export const getAllArticles = async (req, res) => {
     hasPrevPage: currentPage > 1,
   };
 
-  console.log("🐛 DEBUG - Response structure:", response);
+  req.log.info("🐛 DEBUG - Response structure:", response);
 
   res.status(200).json(response);
 };
@@ -188,7 +188,7 @@ export const updateArticle = async (req, res) => {
   const updateData = parsed.data.body;
   // Use company id if present, else fallback to user id
   const authorId = req.user.company ? req.user.company : req.user._id;
-  console.log(
+  req.log.info(
     "req.user._id:",
     req.user._id,
     "req.user.company:",

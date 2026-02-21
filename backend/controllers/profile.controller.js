@@ -28,7 +28,7 @@ export const getProfile = async (req, res) => {
     "User not found",
     404
   );
-  console.log(user);
+  req.log.info(user);
 
   res.status(200).json(user);
 };
@@ -52,7 +52,7 @@ export const getUserById = async (req, res) => {
 
 export const updateProfileAvatar = async (req, res) => {
   try {
-    console.log("Avatar upload request:", {
+    req.log.info("Avatar upload request:", {
       userId: req.user?.id,
       file: req.file
         ? {
@@ -75,7 +75,7 @@ export const updateProfileAvatar = async (req, res) => {
 
     // Delete old avatar if exists
     if (user.avatarPublicId) {
-      console.log("Deleting old avatar:", user.avatarPublicId);
+      req.log.info("Deleting old avatar:", user.avatarPublicId);
       await cloudinary.uploader.destroy(user.avatarPublicId);
     }
 
@@ -89,7 +89,7 @@ export const updateProfileAvatar = async (req, res) => {
       { new: true, runValidators: false } // Skip validation to avoid name required error
     );
 
-    console.log("Avatar upload successful:", {
+    req.log.info("Avatar upload successful:", {
       avatarUrl: updatedUser.avatarUrl,
       avatarPublicId: updatedUser.avatarPublicId,
     });
@@ -100,7 +100,7 @@ export const updateProfileAvatar = async (req, res) => {
       user: updatedUser,
     });
   } catch (error) {
-    console.error("Avatar upload error:", error);
+    req.log.error("Avatar upload error:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Failed to upload avatar",
@@ -149,7 +149,7 @@ export const updateProfile = async (req, res) => {
 
 export const updateResume = async (req, res) => {
   try {
-    console.log("Resume upload request:", {
+    req.log.info("Resume upload request:", {
       userId: req.user?.id,
       file: req.file
         ? {
@@ -172,7 +172,7 @@ export const updateResume = async (req, res) => {
 
     // Delete old resume if exists
     if (user.resumePublicId) {
-      console.log("Deleting old resume:", user.resumePublicId);
+      req.log.info("Deleting old resume:", user.resumePublicId);
       await cloudinary.uploader.destroy(user.resumePublicId);
     }
 
@@ -186,7 +186,7 @@ export const updateResume = async (req, res) => {
       { new: true, runValidators: false } // Skip validation to avoid name required error
     );
 
-    console.log("Resume upload successful:", {
+    req.log.info("Resume upload successful:", {
       resumeUrl: updatedUser.resumeUrl,
       resumePublicId: updatedUser.resumePublicId,
     });
@@ -197,7 +197,7 @@ export const updateResume = async (req, res) => {
       user: updatedUser,
     });
   } catch (error) {
-    console.error("Resume upload error:", error);
+    req.log.error("Resume upload error:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Failed to upload resume",
@@ -217,7 +217,7 @@ export const deleteResume = async (req, res) => {
     );
 
     if (user.resumePublicId) {
-      console.log("Deleting resume from cloudinary:", user.resumePublicId);
+      req.log.info("Deleting resume from cloudinary:", user.resumePublicId);
       await cloudinary.uploader.destroy(user.resumePublicId);
 
       // Update only resume-related fields using findByIdAndUpdate to avoid validation issues
@@ -244,7 +244,7 @@ export const deleteResume = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Delete resume error:", error);
+    req.log.error("Delete resume error:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Failed to delete resume",
@@ -264,7 +264,7 @@ export const deleteAvatar = async (req, res) => {
     );
 
     if (user.avatarPublicId) {
-      console.log("Deleting avatar from cloudinary:", user.avatarPublicId);
+      req.log.info("Deleting avatar from cloudinary:", user.avatarPublicId);
       await cloudinary.uploader.destroy(user.avatarPublicId);
 
       // Update only avatar-related fields using findByIdAndUpdate to avoid validation issues
@@ -291,7 +291,7 @@ export const deleteAvatar = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Delete avatar error:", error);
+    req.log.error("Delete avatar error:", error);
     res.status(500).json({
       success: false,
       message: error.message || "Failed to delete avatar",

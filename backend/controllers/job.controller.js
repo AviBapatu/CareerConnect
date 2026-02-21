@@ -24,7 +24,7 @@ import { sendCustomEmail } from "../utils/sendEmail.js";
 export const deleteJobById = async (req, res) => {
   const parsed = deleteJobByIdSchema.safeParse({ params: req.params });
   if (!parsed.success) {
-    console.error(parsed.error);
+    req.log.error(parsed.error);
     throw new AppError("Validation failed", 400, parsed.error.errors);
   }
   const { id } = parsed.data.params;
@@ -54,7 +54,7 @@ export const applyToJob = async (req, res) => {
 
   const parsed = applySchema.safeParse(req.body);
   if (!parsed.success) {
-    console.error(parsed.error);
+    req.log.error(parsed.error);
     throw new AppError("Validation failed", 400, parsed.error.errors);
   }
 
@@ -113,7 +113,7 @@ export const applyToJob = async (req, res) => {
 };
 
 export const postJob = async (req, res) => {
-  //   console.log(req.user);
+  //   req.log.info(req.user);
   const user = req.user;
 
   const parsed = postJobSchema.safeParse(req.body);
@@ -126,7 +126,7 @@ export const postJob = async (req, res) => {
   if (!user.company) {
     throw new AppError("You must be part of a company to post jobs", 403);
   }
-  console.log("user.company", user.company);
+  req.log.info("user.company", user.company);
 
   const company = await catchAndWrap(
     () => Company.findById(user.company),
@@ -168,7 +168,7 @@ export const getAApplication = async (req, res) => {
 };
 
 export const getAllMyApplications = async (req, res) => {
-  console.log("getAllMyApplications called with:", {
+  req.log.info("getAllMyApplications called with:", {
     query: req.query,
     userId: req.user?._id,
     user: req.user ? "exists" : "missing",
@@ -178,7 +178,7 @@ export const getAllMyApplications = async (req, res) => {
     query: req.query,
   });
   if (!parsed.success) {
-    console.error("Validation failed:", parsed.error);
+    req.log.error("Validation failed:", parsed.error);
     throw new AppError("Validation failed", 400, parsed.error.errors);
   }
 
@@ -203,7 +203,7 @@ export const getAllMyApplications = async (req, res) => {
     "Failed to fetch applications"
   );
 
-  console.log("Applications found:", {
+  req.log.info("Applications found:", {
     count: applications.length,
     applications: applications.map((app) => ({
       id: app._id,
@@ -291,8 +291,8 @@ export const updateJobStatus = async (req, res) => {
     params: req.params,
     body: req.body,
   });
-  console.log("Validation error details:", parsed.error);
-  console.log(req.params, req.body);
+  req.log.info("Validation error details:", parsed.error);
+  req.log.info(req.params, req.body);
 
   if (!parsed.success) {
     throw new AppError("Validation failed", 400, parsed.error.errors);
@@ -310,7 +310,7 @@ export const updateJobStatus = async (req, res) => {
   if (!job) {
     throw new AppError("Job not found", 404);
   }
-  // console.log("status:", status);
+  // req.log.info("status:", status);
   job.status = status;
 
   const updated = await catchAndWrap(
@@ -326,7 +326,7 @@ export const updateJobStatus = async (req, res) => {
 };
 
 export const updateApplicationStatus = async (req, res) => {
-  console.log(req.params, ",", req.body);
+  req.log.info(req.params, ",", req.body);
   const parsed = updateApplicationStatusSchema.safeParse({
     params: req.params,
     body: req.body,
@@ -451,26 +451,26 @@ export const getAllJobs = async (req, res) => {
 };
 
 export const getJobsByCompany = async (req, res) => {
-  console.log("🔍 getJobsByCompany called");
-  console.log("Query params:", req.query);
-  console.log("Full URL:", req.originalUrl);
+  req.log.info("🔍 getJobsByCompany called");
+  req.log.info("Query params:", req.query);
+  req.log.info("Full URL:", req.originalUrl);
 
   const { company } = req.query;
   if (!company) {
-    console.log("❌ No company query param provided");
+    req.log.info("❌ No company query param provided");
     return res
       .status(400)
       .json({ success: false, message: "company query param is required" });
   }
 
-  console.log("🔍 Searching for jobs with company:", company);
+  req.log.info("🔍 Searching for jobs with company:", company);
   try {
     const jobs = await Job.find({ company });
-    console.log("✅ Found jobs:", jobs.length);
-    console.log("Jobs data:", jobs);
+    req.log.info("✅ Found jobs:", jobs.length);
+    req.log.info("Jobs data:", jobs);
     res.status(200).json({ success: true, jobs });
   } catch (error) {
-    console.error("❌ Error fetching jobs:", error);
+    req.log.error("❌ Error fetching jobs:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching jobs",
@@ -482,7 +482,7 @@ export const getJobsByCompany = async (req, res) => {
 export const deleteJobPost = async (req, res) => {
   const parsed = deleteJobSchema.safeParse({ params: req.params });
   if (!parsed.success) {
-    console.error(parsed.error); // Add this for debugging
+    req.log.error(parsed.error); // Add this for debugging
     throw new AppError("Validation failed", 400, parsed.error.errors);
   }
 
@@ -508,7 +508,7 @@ export const deleteApplication = async (req, res) => {
     throw new AppError("Validation failed", 400, parsed.error.errors);
 
   const { jobId, applicationId } = parsed.data.params;
-  // console.log(jobId, applicationId);
+  // req.log.info(jobId, applicationId);
 
   const deleted = await catchAndWrap(
     () => Application.findOneAndDelete({ _id: applicationId, job: jobId }),
@@ -531,7 +531,7 @@ export const editJob = async (req, res) => {
   // Validate input (reuse postJobSchema for simplicity)
   const parsed = postJobSchema.safeParse(req.body);
   if (!parsed.success) {
-    console.error(parsed.error);
+    req.log.error(parsed.error);
     throw new AppError("Validation failed", 400, parsed.error.errors);
   }
   const jobData = parsed.data;
@@ -565,21 +565,21 @@ export const editJob = async (req, res) => {
 };
 
 export const getJobById = async (req, res) => {
-  console.log("🔍 getJobById called");
-  console.log("Params:", req.params);
-  console.log("Query:", req.query);
-  console.log("Full URL:", req.originalUrl);
+  req.log.info("🔍 getJobById called");
+  req.log.info("Params:", req.params);
+  req.log.info("Query:", req.query);
+  req.log.info("Full URL:", req.originalUrl);
 
   const { id } = req.params;
-  console.log("🔍 Searching for job with ID:", id);
+  req.log.info("🔍 Searching for job with ID:", id);
 
   const job = await Job.findById(id);
   if (!job) {
-    console.log("❌ Job not found with ID:", id);
+    req.log.info("❌ Job not found with ID:", id);
     return res.status(404).json({ success: false, message: "Job not found" });
   }
 
-  console.log("✅ Found job:", job.title);
+  req.log.info("✅ Found job:", job.title);
   res.status(200).json(job);
 };
 

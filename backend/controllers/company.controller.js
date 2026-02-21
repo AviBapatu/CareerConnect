@@ -101,9 +101,9 @@ export const getMyCompanyRole = async (req, res) => {
 };
 
 export const createCompany = async (req, res) => {
-  // console.log("REQ BODY", req.body);
-  // console.log("REQ HEADERS", req.headers);
-  // console.log("REQ FILES", req.files);
+  // req.log.info("REQ BODY", req.body);
+  // req.log.info("REQ HEADERS", req.headers);
+  // req.log.info("REQ FILES", req.files);
 
   // Parse socialLinks if sent as FormData fields
   let parsedBody = { ...req.body };
@@ -150,9 +150,9 @@ export const createCompany = async (req, res) => {
 };
 
 export const uploadCompanyLogo = async (req, res) => {
-  console.log("REQ BODY upload company logo", req.body);
-  console.log("REQ HEADERS upload company logo", req.headers);
-  console.log("REQ FILES upload company logo", req.files);
+  req.log.info("REQ BODY upload company logo", req.body);
+  req.log.info("REQ HEADERS upload company logo", req.headers);
+  req.log.info("REQ FILES upload company logo", req.files);
   const { companyId } = req.params;
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
   const company = await Company.findById(companyId);
@@ -160,7 +160,7 @@ export const uploadCompanyLogo = async (req, res) => {
   if (company.logoPublicId) {
     await cloudinary.uploader.destroy(company.logoPublicId);
   }
-  console.log("UPLOAD LOGO FILE", req.file);
+  req.log.info("UPLOAD LOGO FILE", req.file);
   company.logo = req.file.path;
   company.logoPublicId = req.file.public_id;
   await company.save();
@@ -176,7 +176,7 @@ export const uploadCompanyCover = async (req, res) => {
   if (company.coverImagePublicId) {
     await cloudinary.uploader.destroy(company.coverImagePublicId);
   }
-  console.log("UPLOAD COVER FILE", req.file);
+  req.log.info("UPLOAD COVER FILE", req.file);
   company.coverImage = req.file.path;
   company.coverImagePublicId = req.file.public_id;
   await company.save();
@@ -312,7 +312,7 @@ export const getAllCompanies = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching companies:", error);
+    req.log.error("Error fetching companies:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch companies",
@@ -342,7 +342,7 @@ export const getFilterOptions = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching filter options:", error);
+    req.log.error("Error fetching filter options:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch filter options",
@@ -708,7 +708,7 @@ export const getMyJoinRequestStatus = async (req, res) => {
       "joinRequests.user": userId,
     }).select("name joinRequests").lean();
 
-    console.log("🔍 Found companies for user:", companies.map(c => ({ id: c._id, name: c.name })));
+    req.log.info("🔍 Found companies for user:", companies.map(c => ({ id: c._id, name: c.name })));
 
     const userRequests = [];
 
@@ -718,7 +718,7 @@ export const getMyJoinRequestStatus = async (req, res) => {
       );
 
       if (userRequest) {
-        console.log("🔍 Processing request for company:", { 
+        req.log.info("🔍 Processing request for company:", { 
           companyId: company._id, 
           companyName: company.name,
           hasName: !!company.name,
@@ -726,7 +726,7 @@ export const getMyJoinRequestStatus = async (req, res) => {
         });
         
         if (!company.name) {
-          console.error("❌ Company name is missing for company:", company._id);
+          req.log.error("❌ Company name is missing for company:", company._id);
         }
         
         userRequests.push({
@@ -742,14 +742,14 @@ export const getMyJoinRequestStatus = async (req, res) => {
       }
     });
 
-    console.log("🔍 Final user requests:", userRequests);
+    req.log.info("🔍 Final user requests:", userRequests);
 
     res.status(200).json({
       success: true,
       requests: userRequests,
     });
   } catch (error) {
-    console.error("Error in getMyJoinRequestStatus:", error);
+    req.log.error("Error in getMyJoinRequestStatus:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch join request status",
@@ -791,7 +791,7 @@ export const respondToCompanyJoinRequest = async (req, res) => {
   const { companyId } = req.params;
   const { status } = req.body; // "accepted" or "rejected"
 
-  console.log("🔍 respondToCompanyJoinRequest called with:", {
+  req.log.info("🔍 respondToCompanyJoinRequest called with:", {
     userId: userId.toString(),
     companyId,
     status,
@@ -803,11 +803,11 @@ export const respondToCompanyJoinRequest = async (req, res) => {
   }
 
   // Update user's join request status
-  console.log("🔍 Updating user's join request status...");
+  req.log.info("🔍 Updating user's join request status...");
   
   // First, let's check what join requests the user currently has
   const userBefore = await User.findById(userId);
-  console.log("🔍 User's current join requests:", userBefore?.companyJoinRequests || []);
+  req.log.info("🔍 User's current join requests:", userBefore?.companyJoinRequests || []);
   
   const user = await User.findOneAndUpdate(
     { _id: userId, "companyJoinRequests.company": companyId },
@@ -816,28 +816,28 @@ export const respondToCompanyJoinRequest = async (req, res) => {
   ).populate("companyJoinRequests.company");
 
   if (!user) {
-    console.log("❌ User not found or join request not found");
+    req.log.info("❌ User not found or join request not found");
     throw new AppError("Join request not found", 404);
   }
   
-  console.log("✅ User updated successfully:", user._id);
-  console.log("🔍 User's updated join requests:", user.companyJoinRequests || []);
+  req.log.info("✅ User updated successfully:", user._id);
+  req.log.info("🔍 User's updated join requests:", user.companyJoinRequests || []);
 
   // Update company joinRequests status
-  console.log("🔍 Updating company join request status...");
+  req.log.info("🔍 Updating company join request status...");
   const company = await Company.findById(companyId);
   if (!company) throw new AppError("Company not found", 404);
   
-  console.log("🔍 Company found:", company.name);
-  console.log("🔍 Looking for user's pending request...");
+  req.log.info("🔍 Company found:", company.name);
+  req.log.info("🔍 Looking for user's pending request...");
   
   const reqObj = company.joinRequests.find(
     (r) => r.user.toString() === userId.toString() && r.status === "pending"
   );
   
   if (!reqObj) {
-    console.log("❌ Join request not found in company for user:", userId.toString());
-    console.log("🔍 Available requests:", company.joinRequests.map(r => ({
+    req.log.info("❌ Join request not found in company for user:", userId.toString());
+    req.log.info("🔍 Available requests:", company.joinRequests.map(r => ({
       user: r.user.toString(),
       status: r.status,
       roleTitle: r.roleTitle
@@ -845,27 +845,27 @@ export const respondToCompanyJoinRequest = async (req, res) => {
     throw new AppError("Join request not found in company", 404);
   }
   
-  console.log("✅ Found pending request:", reqObj.roleTitle);
+  req.log.info("✅ Found pending request:", reqObj.roleTitle);
   reqObj.status = status;
   await company.save();
-  console.log("✅ Company updated successfully");
+  req.log.info("✅ Company updated successfully");
 
   if (status === "accepted") {
-    console.log("🔍 Adding user to company members...");
+    req.log.info("🔍 Adding user to company members...");
     // Add user to company members
     company.members.push({ user: userId, role: reqObj.roleTitle });
     if (reqObj.roleTitle === "admin") {
       company.admins.push(userId);
     }
     await company.save();
-    console.log("✅ User added to company members");
+    req.log.info("✅ User added to company members");
     
     // Update user's company and companyRole
-    console.log("🔍 Updating user's company and role...");
+    req.log.info("🔍 Updating user's company and role...");
     user.company = company._id;
     user.companyRole = reqObj.roleTitle;
     await user.save();
-    console.log("✅ User's company and role updated");
+    req.log.info("✅ User's company and role updated");
   }
 
   res.status(200).json({ success: true, message: `Request ${status}` });

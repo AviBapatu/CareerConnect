@@ -1,3 +1,4 @@
+import { logger } from "./logger.js";
 import SibApiV3Sdk from "sib-api-v3-sdk";
 import dotenv from "dotenv";
 
@@ -26,18 +27,18 @@ export const sendPasswordReset = async (email, resetURL) => {
       <a href="${resetURL}">${resetURL}</a>
     `;
     await sendEmail(email, "Password Reset Link", html);
-    console.log("Password reset email sent");
+    logger.info("Password reset email sent");
   } catch (error) {
-    console.error("Error sending password reset email:", error);
+    logger.error("Error sending password reset email:", error);
   }
 };
 
 export const sendCustomEmail = async (to, subject, html) => {
   try {
     await sendEmail(to, subject, html);
-    console.log("Custom email sent");
+    logger.info("Custom email sent");
   } catch (error) {
-    console.error("Error sending custom email:", error);
+    logger.error("Error sending custom email:", error);
   }
 };
 
@@ -49,9 +50,9 @@ export const send2FAOtp = async (email, otp) => {
       <p>This code is valid for 10 minutes. If you did not request this, please ignore this email.</p>
     `;
     await sendEmail(email, "Your CareerConnect 2FA Verification Code", html);
-    console.log("2FA OTP email sent");
+    logger.info("2FA OTP email sent");
   } catch (error) {
-    console.error("Error sending 2FA OTP email:", error);
+    logger.error("Error sending 2FA OTP email:", error);
     throw error;
   }
 };

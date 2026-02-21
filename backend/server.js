@@ -16,6 +16,8 @@ import "./models/Company.js";
 import "./models/User.js";
 import listEndpoints from "express-list-endpoints";
 import { globalLimiter } from "./middleware/rateLimiter.js";
+import { requestLogger } from "./middleware/requestLogger.js";
+import { logger } from "./utils/logger.js";
 
 dotenv.config();
 
@@ -34,10 +36,7 @@ app.use(
 );
 
 connectDB();
-app.use((req, res, next) => {
-  console.log(`[${req.method}] ${req.originalUrl}`);
-  next();
-});
+app.use(requestLogger);
 
 app.use("/api", globalLimiter);
 app.use("/api/auth", authRoutes);
@@ -62,9 +61,9 @@ const PORT = process.env.PORT || 5000;
 
 try {
   app.listen(PORT, () => {
-    console.log(`Server is up Baby! Running on ${PORT}`);
+    logger.info(`Server is up Baby! Running on ${PORT}`);
   });
 } catch (err) {
-  console.error(`Server failed to start ${err}`);
+  logger.error("Server failed to start", err);
   process.exit(1);
 }

@@ -139,31 +139,31 @@ const verify2FA = async (req, res) => {
 
 // 2FA login step: after password, send OTP
 const loginUser = async (req, res) => {
-  console.log("[loginUser] Request body:", req.body);
+  req.log.info("[loginUser] Request body:", req.body);
   const result = logInSchema.safeParse(req.body);
   if (!result.success) {
-    console.log("[loginUser] Invalid input:", result.error);
+    req.log.info("[loginUser] Invalid input:", result.error);
     throw new AppError("Invalid Input", 400);
   }
 
   const { email, password, otp } = result.data;
-  console.log("[loginUser] Parsed data:", { email, password, otp });
+  req.log.info("[loginUser] Parsed data:", { email, password, otp });
 
   const user = await User.findOne({ email });
   if (!user) {
-    console.log("[loginUser] User not found for email:", email);
+    req.log.info("[loginUser] User not found for email:", email);
     throw new AppError("Invalid email or password", 401);
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
-    console.log("[loginUser] Password mismatch for email:", email);
+    req.log.info("[loginUser] Password mismatch for email:", email);
     throw new AppError("Invalid email or password", 401);
   }
 
   // If 2FA is enabled, require OTP
   if (user.twoFactorEnabled) {
-    console.log("[loginUser] 2FA is enabled for user:", email);
+    req.log.info("[loginUser] 2FA is enabled for user:", email);
     // If OTP is not provided, send OTP and require it
     if (!otp) {
       const generatedOtp = Math.floor(
@@ -176,14 +176,14 @@ const loginUser = async (req, res) => {
       user.twoFactorTempSecret = hashedOtp;
       user.twoFactorOTPExpires = new Date(Date.now() + 10 * 60 * 1000);
       await user.save();
-      console.log(
+      req.log.info(
         "[loginUser] Generated and saved OTP for user:",
         email,
         "OTP:",
         generatedOtp
       );
       await send2FAOtp(user.email, generatedOtp);
-      console.log("[loginUser] Sent OTP email to:", user.email);
+      req.log.info("[loginUser] Sent OTP email to:", user.email);
       return res.status(206).json({
         success: false,
         message: "OTP sent to your email. Please verify to complete login.",
@@ -191,23 +191,23 @@ const loginUser = async (req, res) => {
       });
     } else {
       // Verify OTP
-      console.log(
+      req.log.info(
         "[loginUser] Verifying OTP for user:",
         email,
         "OTP provided:",
         otp
       );
       if (!user.twoFactorTempSecret || !user.twoFactorOTPExpires) {
-        console.log("[loginUser] No OTP requested for user:", email);
+        req.log.info("[loginUser] No OTP requested for user:", email);
         throw new AppError("No OTP requested.", 400);
       }
       if (user.twoFactorOTPExpires < new Date()) {
-        console.log("[loginUser] OTP expired for user:", email);
+        req.log.info("[loginUser] OTP expired for user:", email);
         throw new AppError("OTP expired.", 400);
       }
       const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
       if (hashedOtp !== user.twoFactorTempSecret) {
-        console.log(
+        req.log.info(
           "[loginUser] Invalid OTP for user:",
           email,
           "Provided:",
@@ -220,12 +220,12 @@ const loginUser = async (req, res) => {
       user.twoFactorTempSecret = undefined;
       user.twoFactorOTPExpires = undefined;
       await user.save();
-      console.log("[loginUser] OTP validated and cleared for user:", email);
+      req.log.info("[loginUser] OTP validated and cleared for user:", email);
     }
   }
 
   const token = signToken({ id: user._id, role: user.role });
-  console.log("[loginUser] Login successful for user:", email);
+  req.log.info("[loginUser] Login successful for user:", email);
 
   res.status(200).json({
     message: "Login successful",
@@ -273,18 +273,18 @@ const getMe = async (req, res) => {
 const updateMe = async (req, res) => {
   const userId = req.user._id;
   const { role } = req.body;
-  console.log(role);
+  req.log.info(role);
   if (!role || !["candidate", "recruiter"].includes(role)) {
     return res.status(400).json({ success: false, message: "Invalid role." });
   }
   const user = await User.findById(userId).populate("company");
-  console.log(user._id);
+  req.log.info(user._id);
   if (!user) {
     return res.status(404).json({ success: false, message: "User not found." });
   }
   user.role = role;
 
-  console.log(user.role);
+  req.log.info(user.role);
   await user.save();
 
   // Return the same format as getMe for consistency

@@ -1,9 +1,10 @@
+import { logger } from "../utils/logger.js";
 import { ZodError } from "zod";
 import { AppError } from "../utils/AppError.js";
 
 // Global Error Handler Middleware
 export const errorHandler = (err, req, res, next) => {
-  console.error("unhandled error:", err);
+  logger.error("unhandled error:", err);
 
   let statusCode = 500;
   let message = "Something went wrong! Please try again.";

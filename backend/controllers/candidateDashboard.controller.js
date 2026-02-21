@@ -103,7 +103,7 @@ export const getCandidateDashboardStats = async (req, res) => {
       data: stats,
     });
   } catch (error) {
-    console.error("Candidate dashboard stats error:", error);
+    req.log.error("Candidate dashboard stats error:", error);
     throw new AppError("Failed to fetch candidate dashboard statistics", 500);
   }
 };

@@ -1,3 +1,4 @@
+import { logger } from "../logger.js";
 export const articleOptions = (query) => {
   const {
     page = 1,
@@ -8,8 +9,8 @@ export const articleOptions = (query) => {
     ...filters
   } = query;
 
-  console.log("🐛 DEBUG - articleOptions input query:", query);
-  console.log("🐛 DEBUG - articleOptions filters:", filters);
+  logger.info("🐛 DEBUG - articleOptions input query:", query);
+  logger.info("🐛 DEBUG - articleOptions filters:", filters);
 
   // Convert page/limit to numbers
   const skip = (Number(page) - 1) * Number(limit);
@@ -41,7 +42,7 @@ export const articleOptions = (query) => {
   }
 
   const finalFilter = { ...filters, ...searchFilter };
-  console.log("🐛 DEBUG - Final filter being applied:", finalFilter);
+  logger.info("🐛 DEBUG - Final filter being applied:", finalFilter);
 
   return {
     filter: finalFilter,
