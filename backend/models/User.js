@@ -71,9 +71,6 @@ const userSchema = new Schema(
       enum: ["employee", "recruiter", "admin"],
     },
 
-    resetPasswordToken: String,
-    resetPasswordExpires: Date,
-
     // Incoming company join requests
     companyJoinRequests: [
       {
@@ -90,8 +87,6 @@ const userSchema = new Schema(
 
     // 2FA fields
     twoFactorEnabled: { type: Boolean, default: false },
-    twoFactorTempSecret: String, // hashed OTP
-    twoFactorOTPExpires: Date,
   },
   {
     timestamps: true,

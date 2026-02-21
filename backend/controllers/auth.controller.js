@@ -2,6 +2,8 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import User from "../models/User.js";
 import PendingUser from "../models/PendingUser.js";
+import Otp from "../models/Otp.js";
+import PasswordResetToken from "../models/PasswordResetToken.js";
 import { AppError } from "../utils/AppError.js";
 import { signToken } from "../utils/jwt.js";
 import { catchAndWrap } from "../utils/catchAndWrap.js";
@@ -35,8 +37,6 @@ const registerUser = async (req, res) => {
   // Generate OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
-  const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 min
-
   // Store in PendingUser
   const pending = await PendingUser.create({
     name,
@@ -44,7 +44,6 @@ const registerUser = async (req, res) => {
     password: hashed,
     role,
     twoFactorTempSecret: hashedOtp,
-    twoFactorOTPExpires: otpExpires,
   });
   await send2FAOtp(email, otp);
 
@@ -63,12 +62,16 @@ const verifySignup2FA = async (req, res) => {
     return res
       .status(404)
       .json({ success: false, message: "Pending registration not found" });
-  if (!pending.twoFactorTempSecret || !pending.twoFactorOTPExpires)
+  if (!pending.twoFactorTempSecret)
     return res
       .status(400)
       .json({ success: false, message: "No OTP requested." });
-  if (pending.twoFactorOTPExpires < new Date())
+
+  const isExpired = Date.now() - pending.createdAt.getTime() > 10 * 60 * 1000;
+  if (isExpired) {
+    await pending.deleteOne();
     return res.status(400).json({ success: false, message: "OTP expired." });
+  }
   const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
   if (hashedOtp !== pending.twoFactorTempSecret)
     return res.status(400).json({ success: false, message: "Invalid OTP." });
@@ -109,9 +112,12 @@ const enable2FA = async (req, res) => {
   // Generate OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
-  user.twoFactorTempSecret = hashedOtp;
-  user.twoFactorOTPExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 min
-  await user.save();
+
+  await Otp.create({
+    user: user._id,
+    otp: hashedOtp,
+  });
+
   await send2FAOtp(user.email, otp);
   res.status(200).json({ success: true, message: "OTP sent to your email." });
 };
@@ -121,19 +127,18 @@ const verify2FA = async (req, res) => {
   const user = await User.findById(req.user.id);
   if (!user)
     return res.status(404).json({ success: false, message: "User not found" });
-  if (!user.twoFactorTempSecret || !user.twoFactorOTPExpires)
-    return res
-      .status(400)
-      .json({ success: false, message: "No OTP requested." });
-  if (user.twoFactorOTPExpires < new Date())
-    return res.status(400).json({ success: false, message: "OTP expired." });
+  const otpDoc = await Otp.findOne({ user: user._id });
+
+  if (!otpDoc)
+    return res.status(400).json({ success: false, message: "OTP expired or not requested." });
+
   const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
-  if (hashedOtp !== user.twoFactorTempSecret)
+  if (otpDoc.otp !== hashedOtp)
     return res.status(400).json({ success: false, message: "Invalid OTP." });
+
   user.twoFactorEnabled = true;
-  user.twoFactorTempSecret = undefined;
-  user.twoFactorOTPExpires = undefined;
   await user.save();
+  await otpDoc.deleteOne();
   res.status(200).json({ success: true, message: "2FA enabled successfully." });
 };
 
@@ -173,9 +178,12 @@ const loginUser = async (req, res) => {
         .createHash("sha256")
         .update(generatedOtp)
         .digest("hex");
-      user.twoFactorTempSecret = hashedOtp;
-      user.twoFactorOTPExpires = new Date(Date.now() + 10 * 60 * 1000);
-      await user.save();
+
+      await Otp.create({
+        user: user._id,
+        otp: hashedOtp,
+      });
+
       req.log.info(
         "[loginUser] Generated and saved OTP for user:",
         email,
@@ -197,29 +205,27 @@ const loginUser = async (req, res) => {
         "OTP provided:",
         otp
       );
-      if (!user.twoFactorTempSecret || !user.twoFactorOTPExpires) {
-        req.log.info("[loginUser] No OTP requested for user:", email);
-        throw new AppError("No OTP requested.", 400);
+
+      const otpDoc = await Otp.findOne({ user: user._id });
+
+      if (!otpDoc) {
+        req.log.info("[loginUser] OTP expired or not requested for user:", email);
+        throw new AppError("OTP expired or not requested.", 400);
       }
-      if (user.twoFactorOTPExpires < new Date()) {
-        req.log.info("[loginUser] OTP expired for user:", email);
-        throw new AppError("OTP expired.", 400);
-      }
+
       const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
-      if (hashedOtp !== user.twoFactorTempSecret) {
+
+      if (otpDoc.otp !== hashedOtp) {
         req.log.info(
           "[loginUser] Invalid OTP for user:",
           email,
           "Provided:",
-          otp,
-          "Expected:",
-          user.twoFactorTempSecret
+          otp
         );
         throw new AppError("Invalid OTP.", 400);
       }
-      user.twoFactorTempSecret = undefined;
-      user.twoFactorOTPExpires = undefined;
-      await user.save();
+
+      await otpDoc.deleteOne();
       req.log.info("[loginUser] OTP validated and cleared for user:", email);
     }
   }
@@ -342,9 +348,10 @@ const forgotPassword = async (req, res) => {
   const token = crypto.randomBytes(32).toString("hex");
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-  user.resetPasswordToken = hashedToken;
-  user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-  await user.save();
+  await PasswordResetToken.create({
+    user: user._id,
+    token: hashedToken
+  });
 
   const resetURL = `${process.env.FRONTEND_URL}/auth/reset-password/${token}/${user._id}`;
   await sendPasswordReset(email, resetURL);
@@ -371,23 +378,20 @@ const resetPassword = async (req, res) => {
 
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-  const user = await catchAndWrap(
-    () =>
-      res.status(200).json({
-        message: "Login successful",
-        token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          company: user.company,
-          companyRole: user.companyRole,
-          resumeUrl: user.resumeUrl || null,
-        },
-      }));
+  const resetDoc = await PasswordResetToken.findOne({ user: id });
+  if (!resetDoc) {
+    throw new AppError("Token invalid or expired", 400);
+  }
+  if (resetDoc.token !== hashedToken) {
+    throw new AppError("Token invalid or expired", 400);
+  }
 
+  const user = await User.findById(id);
+  if (!user) throw new AppError("User not found", 404);
+
+  user.password = await bcrypt.hash(password, 10);
   await user.save();
+  await resetDoc.deleteOne();
 
   res.status(200).json({ message: "Password was reset successfully." });
 };
@@ -401,9 +405,8 @@ const disable2FA = async (req, res) => {
       .status(400)
       .json({ success: false, message: "2FA is not enabled." });
   user.twoFactorEnabled = false;
-  user.twoFactorTempSecret = undefined;
-  user.twoFactorOTPExpires = undefined;
   await user.save();
+  await Otp.deleteMany({ user: user._id });
   res
     .status(200)
     .json({ success: true, message: "2FA disabled successfully." });
