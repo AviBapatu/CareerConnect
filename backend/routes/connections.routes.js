@@ -11,13 +11,14 @@ import {
   getConnectionStatus,
   removeConnection,
 } from "../controllers/connections.controller.js";
+import { actionLimiter } from "../middleware/rateLimiter.js";
 
 const router = Router();
 
 router.use(authentication);
 
 router.get("/search", searchUsersForConnection);
-router.post("/request", sendConnectionRequest);
+router.post("/request", actionLimiter, sendConnectionRequest);
 router.patch("/accept", acceptConnectionRequest);
 router.patch("/reject/:requesterId", rejectConnectionRequest);
 router.get("/all", getAllConnections);

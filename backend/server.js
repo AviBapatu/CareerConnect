@@ -15,10 +15,13 @@ import cors from "cors";
 import "./models/Company.js";
 import "./models/User.js";
 import listEndpoints from "express-list-endpoints";
+import { globalLimiter } from "./middleware/rateLimiter.js";
 
 dotenv.config();
 
 const app = express();
+
+app.set("trust proxy", 1);
 
 app.use(helmet());
 app.use(express.json());
@@ -36,6 +39,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use("/api", globalLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/connection", connectionRoutes);
