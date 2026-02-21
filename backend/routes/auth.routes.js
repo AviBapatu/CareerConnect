@@ -12,6 +12,7 @@ import {
   disable2FA,
   verifySignup2FA,
   updateMe,
+  refreshAccessToken,
 } from "../controllers/auth.controller.js";
 import { authentication } from "../middleware/auth.js";
 import { authLimiter } from "../middleware/rateLimiter.js";
@@ -30,5 +31,6 @@ router.post("/enable-2fa", authentication, enable2FA);
 router.post("/verify-2fa", authentication, authLimiter, verify2FA);
 router.post("/disable-2fa", authentication, disable2FA);
 router.post("/verify-signup-2fa", authLimiter, verifySignup2FA);
+router.post("/refresh", refreshAccessToken);
 
 export default router;

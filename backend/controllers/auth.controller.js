@@ -5,7 +5,8 @@ import PendingUser from "../models/PendingUser.js";
 import Otp from "../models/Otp.js";
 import PasswordResetToken from "../models/PasswordResetToken.js";
 import { AppError } from "../utils/AppError.js";
-import { signToken } from "../utils/jwt.js";
+import RefreshToken from "../models/RefreshToken.js";
+import { signAccessToken, signRefreshToken } from "../utils/token.js";
 import { catchAndWrap } from "../utils/catchAndWrap.js";
 import { sendPasswordReset } from "../utils/sendEmail.js";
 import { send2FAOtp } from "../utils/sendEmail.js";
@@ -87,10 +88,28 @@ const verifySignup2FA = async (req, res) => {
   // Remove pending registration by email
   await PendingUser.deleteOne({ email: pending.email });
 
-  const token = signToken({ id: user._id, role: user.role });
+  const accessToken = signAccessToken(user._id);
+  const refreshToken = signRefreshToken();
+
+  const hashed = crypto
+    .createHash("sha256")
+    .update(refreshToken)
+    .digest("hex");
+
+  await RefreshToken.create({
+    user: user._id,
+    token: hashed
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict"
+  });
+
   res.status(200).json({
     message: "Registration successful",
-    token,
+    accessToken,
     user: {
       id: user._id,
       name: user.name,
@@ -230,12 +249,31 @@ const loginUser = async (req, res) => {
     }
   }
 
-  const token = signToken({ id: user._id, role: user.role });
+  const accessToken = signAccessToken(user._id);
+  const refreshToken = signRefreshToken();
+
+  const hashed = crypto
+    .createHash("sha256")
+    .update(refreshToken)
+    .digest("hex");
+
+  await RefreshToken.create({
+    user: user._id,
+    token: hashed
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict"
+  });
+
   req.log.info("[loginUser] Login successful for user:", email);
 
   res.status(200).json({
+    success: true,
     message: "Login successful",
-    token,
+    accessToken,
     user: {
       id: user._id,
       name: user.name,
@@ -307,7 +345,19 @@ const updateMe = async (req, res) => {
 };
 
 const logOut = async (req, res) => {
-  res.status(200).json({ message: "Logged out" });
+  const token = req.cookies?.refreshToken;
+
+  if (token) {
+    const hashed = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    await RefreshToken.deleteOne({ token: hashed });
+  }
+
+  res.clearCookie("refreshToken");
+  res.status(200).json({ success: true, message: "Logged out" });
 };
 
 const updateUserRole = async (req, res) => {
@@ -393,6 +443,8 @@ const resetPassword = async (req, res) => {
   await user.save();
   await resetDoc.deleteOne();
 
+  await RefreshToken.deleteMany({ user: user._id });
+
   res.status(200).json({ message: "Password was reset successfully." });
 };
 
@@ -412,6 +464,40 @@ const disable2FA = async (req, res) => {
     .json({ success: true, message: "2FA disabled successfully." });
 };
 
+const refreshAccessToken = async (req, res) => {
+  const token = req.cookies?.refreshToken;
+
+  if (!token) throw new AppError("Unauthorized", 401);
+
+  const hashed = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
+
+  const stored = await RefreshToken.findOne({ token: hashed });
+
+  if (!stored) throw new AppError("Invalid session", 401);
+
+  const newAccessToken = signAccessToken(stored.user);
+
+  const newRefreshToken = signRefreshToken();
+  const newHashed = crypto
+    .createHash("sha256")
+    .update(newRefreshToken)
+    .digest("hex");
+
+  stored.token = newHashed;
+  await stored.save();
+
+  res.cookie("refreshToken", newRefreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict"
+  });
+
+  res.json({ accessToken: newAccessToken });
+};
+
 export {
   registerUser,
   loginUser,
@@ -425,4 +511,5 @@ export {
   disable2FA,
   verifySignup2FA,
   updateMe,
+  refreshAccessToken,
 };
