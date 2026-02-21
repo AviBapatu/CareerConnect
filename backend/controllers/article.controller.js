@@ -34,7 +34,7 @@ export const createArticle = async (req, res) => {
 export const getMyArticles = async (req, res) => {
   const authorId = req.user.company ? req.user.company : req.user._id;
   const articles = await catchAndWrap(
-    () => Article.find({ author: authorId }),
+    () => Article.find({ author: authorId }).lean(),
     "Failed to fetch your articles"
   );
 
@@ -56,47 +56,45 @@ export const getAllArticles = async (req, res) => {
   const [articles, totalArticles] = await Promise.all([
     catchAndWrap(async () => {
       const articles = await Article.find(filter)
+        .populate("comments.user", "name email")
         .skip(skip)
         .limit(limit)
-        .sort(sort);
+        .sort(sort)
+        .lean();
 
       // Manually populate each article based on its authorType
       const populatedArticles = await Promise.all(
         articles.map(async (article) => {
-          // Populate comments with user data
-          await article.populate("comments.user", "name email");
-
           let populatedAuthor = null;
 
           req.log.info("🐛 DEBUG - Article authorType:", article.authorType);
           req.log.info("🐛 DEBUG - Article author ID:", article.author);
 
           if (article.authorType === "User" || article.authorType === "user") {
-            populatedAuthor = await User.findById(article.author).select(
-              "name email"
-            );
+            populatedAuthor = await User.findById(article.author)
+              .select("name email")
+              .lean();
             req.log.info("🐛 DEBUG - Found User author:", populatedAuthor);
           } else if (
             article.authorType === "Company" ||
             article.authorType === "company"
           ) {
-            populatedAuthor = await Company.findById(article.author).select(
-              "name email"
-            );
+            populatedAuthor = await Company.findById(article.author)
+              .select("name email")
+              .lean();
             req.log.info("🐛 DEBUG - Found Company author:", populatedAuthor);
           }
 
-          // Convert to plain object and add populated author
-          const articleObj = article.toObject();
-          articleObj.author = populatedAuthor;
+          // Add populated author
+          article.author = populatedAuthor;
 
           req.log.info("🐛 DEBUG - Final article with author:", {
-            title: articleObj.title,
-            authorType: articleObj.authorType,
-            author: articleObj.author,
+            title: article.title,
+            authorType: article.authorType,
+            author: article.author,
           });
 
-          return articleObj;
+          return article;
         })
       );
 

@@ -39,7 +39,8 @@ export const searchCompaniesByName = async (req, res) => {
     () =>
       Company.find({ name: new RegExp(q, "i") })
         .select("_id name logo")
-        .limit(10),
+        .limit(10)
+        .lean(),
     "Company search failed"
   );
 
@@ -82,9 +83,9 @@ export const getMyCompanyRole = async (req, res) => {
   );
 
   if (pendingRequest) {
-    return res.status(200).json({ 
-      role: "pending", 
-      message: "You have a pending join request for this company" 
+    return res.status(200).json({
+      role: "pending",
+      message: "You have a pending join request for this company"
     });
   }
 
@@ -718,17 +719,17 @@ export const getMyJoinRequestStatus = async (req, res) => {
       );
 
       if (userRequest) {
-        req.log.info("🔍 Processing request for company:", { 
-          companyId: company._id, 
+        req.log.info("🔍 Processing request for company:", {
+          companyId: company._id,
           companyName: company.name,
           hasName: !!company.name,
           nameType: typeof company.name
         });
-        
+
         if (!company.name) {
           req.log.error("❌ Company name is missing for company:", company._id);
         }
-        
+
         userRequests.push({
           _id: userRequest._id,
           company: {
@@ -804,11 +805,11 @@ export const respondToCompanyJoinRequest = async (req, res) => {
 
   // Update user's join request status
   req.log.info("🔍 Updating user's join request status...");
-  
+
   // First, let's check what join requests the user currently has
   const userBefore = await User.findById(userId);
   req.log.info("🔍 User's current join requests:", userBefore?.companyJoinRequests || []);
-  
+
   const user = await User.findOneAndUpdate(
     { _id: userId, "companyJoinRequests.company": companyId },
     { $set: { "companyJoinRequests.$.status": status } },
@@ -819,7 +820,7 @@ export const respondToCompanyJoinRequest = async (req, res) => {
     req.log.info("❌ User not found or join request not found");
     throw new AppError("Join request not found", 404);
   }
-  
+
   req.log.info("✅ User updated successfully:", user._id);
   req.log.info("🔍 User's updated join requests:", user.companyJoinRequests || []);
 
@@ -827,14 +828,14 @@ export const respondToCompanyJoinRequest = async (req, res) => {
   req.log.info("🔍 Updating company join request status...");
   const company = await Company.findById(companyId);
   if (!company) throw new AppError("Company not found", 404);
-  
+
   req.log.info("🔍 Company found:", company.name);
   req.log.info("🔍 Looking for user's pending request...");
-  
+
   const reqObj = company.joinRequests.find(
     (r) => r.user.toString() === userId.toString() && r.status === "pending"
   );
-  
+
   if (!reqObj) {
     req.log.info("❌ Join request not found in company for user:", userId.toString());
     req.log.info("🔍 Available requests:", company.joinRequests.map(r => ({
@@ -844,7 +845,7 @@ export const respondToCompanyJoinRequest = async (req, res) => {
     })));
     throw new AppError("Join request not found in company", 404);
   }
-  
+
   req.log.info("✅ Found pending request:", reqObj.roleTitle);
   reqObj.status = status;
   await company.save();
@@ -859,7 +860,7 @@ export const respondToCompanyJoinRequest = async (req, res) => {
     }
     await company.save();
     req.log.info("✅ User added to company members");
-    
+
     // Update user's company and companyRole
     req.log.info("🔍 Updating user's company and role...");
     user.company = company._id;

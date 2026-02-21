@@ -381,7 +381,7 @@ export const getJobPosts = async (req, res) => {
 
   if (jobId) {
     const job = await catchAndWrap(
-      () => Job.findById(jobId).populate("company", "name industry"),
+      () => Job.findById(jobId).populate("company", "name industry").lean(),
       "Job not found",
       404
     );
@@ -394,7 +394,10 @@ export const getJobPosts = async (req, res) => {
   }
 
   const filter = jobOptions(query);
-  const jobs = await Job.find(filter).populate("company", "name industry");
+  const jobs = await Job.find(filter)
+    .select("title location salary company companyName type createdAt")
+    .populate("company", "name industry")
+    .lean();
 
   res.status(200).json({
     success: true,
@@ -446,7 +449,10 @@ export const getAllJobs = async (req, res) => {
       ],
     };
   }
-  const jobs = await Job.find(filter).populate("company");
+  const jobs = await Job.find(filter)
+    .select("title location salary company companyName type createdAt")
+    .populate("company")
+    .lean();
   res.status(200).json({ success: true, jobs });
 };
 
@@ -465,7 +471,9 @@ export const getJobsByCompany = async (req, res) => {
 
   req.log.info("🔍 Searching for jobs with company:", company);
   try {
-    const jobs = await Job.find({ company });
+    const jobs = await Job.find({ company })
+      .select("title location salary company companyName type createdAt")
+      .lean();
     req.log.info("✅ Found jobs:", jobs.length);
     req.log.info("Jobs data:", jobs);
     res.status(200).json({ success: true, jobs });
@@ -573,7 +581,7 @@ export const getJobById = async (req, res) => {
   const { id } = req.params;
   req.log.info("🔍 Searching for job with ID:", id);
 
-  const job = await Job.findById(id);
+  const job = await Job.findById(id).lean();
   if (!job) {
     req.log.info("❌ Job not found with ID:", id);
     return res.status(404).json({ success: false, message: "Job not found" });
