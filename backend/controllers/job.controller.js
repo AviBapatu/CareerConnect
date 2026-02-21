@@ -58,31 +58,48 @@ export const applyToJob = async (req, res) => {
     throw new AppError("Validation failed", 400, parsed.error.errors);
   }
 
-  const job = await catchAndWrap(
-    () => Job.findById(jobId),
-    "Job not found",
-    404
-  );
-  if (!job) throw new AppError("Job does not exist", 404);
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  const existing = await catchAndWrap(
-    () => Application.findOne({ job: jobId, user: userId }),
-    "Failed to check existing application"
-  );
-  if (existing) throw new AppError("You already applied to this job", 400);
+  try {
+    const job = await catchAndWrap(
+      () => Job.findById(jobId).session(session),
+      "Job not found",
+      404
+    );
+    if (!job) throw new AppError("Job does not exist", 404);
 
-  const application = await catchAndWrap(
-    () =>
-      Application.create({
-        job: jobId,
-        user: userId,
-        resume: parsed.data.resume,
-        coverLetter: parsed.data.coverLetter,
-      }),
-    "Failed to submit application"
-  );
+    const existing = await catchAndWrap(
+      () => Application.findOne({ job: jobId, user: userId }).session(session),
+      "Failed to check existing application"
+    );
+    if (existing) throw new AppError("You already applied to this job", 400);
 
-  res.status(201).json({ success: true, data: application });
+    const applicationArr = await catchAndWrap(
+      () =>
+        Application.create(
+          [
+            {
+              job: jobId,
+              user: userId,
+              resume: parsed.data.resume,
+              coverLetter: parsed.data.coverLetter,
+            },
+          ],
+          { session }
+        ),
+      "Failed to submit application"
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(201).json({ success: true, data: applicationArr[0] });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
 };
 
 export const postJob = async (req, res) => {
@@ -619,12 +636,10 @@ export const sendApplicationStatusEmail = async (req, res) => {
     <div style="font-family: Arial, sans-serif;">
       <h2>Application Status Update</h2>
       <p>Dear ${user.name || "Applicant"},</p>
-      <p>Your application for the position of <strong>${
-        job.title
-      }</strong> at <strong>${job.companyName}</strong> has been updated.</p>
-      <p><strong>New Status:</strong> <span style="color: #2563eb;">${
-        application.status.charAt(0).toUpperCase() + application.status.slice(1)
-      }</span></p>
+      <p>Your application for the position of <strong>${job.title
+    }</strong> at <strong>${job.companyName}</strong> has been updated.</p>
+      <p><strong>New Status:</strong> <span style="color: #2563eb;">${application.status.charAt(0).toUpperCase() + application.status.slice(1)
+    }</span></p>
       <p>If you have any questions, feel free to reply to this email.</p>
       <br/>
       <p>Best regards,<br/>${job.companyName} Recruitment Team</p>

@@ -17,5 +17,9 @@ const applicationSchema = new Schema(
   { timestamps: true }
 );
 
+applicationSchema.index({ user: 1 });
+applicationSchema.index({ job: 1 });
+applicationSchema.index({ job: 1, user: 1 }, { unique: true });
+
 const Application = model("Application", applicationSchema);
 export default Application;
