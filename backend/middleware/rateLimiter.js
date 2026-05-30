@@ -10,6 +10,7 @@ export const globalLimiter = rateLimit({
     },
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    skip: () => process.env.NODE_ENV === "test",
 });
 
 // 2. Auth Strict Limiter - Applies to login, register, password reset
@@ -23,6 +24,7 @@ export const authLimiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: () => process.env.NODE_ENV === "test",
 });
 
 // 3. Application / Action Limiter - Applies to job actions, connections, company Invites
@@ -36,4 +38,5 @@ export const actionLimiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: () => process.env.NODE_ENV === "test",
 });
