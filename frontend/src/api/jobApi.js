@@ -95,3 +95,8 @@ export const updateApplicationStatus = (companyId, applicationId, status) => {
 export const sendApplicationStatusEmail = (applicationId) => {
   return axios.post(`/job/${applicationId}/send-status-email`);
 };
+
+// AI screen applications for a job (for recruiters)
+export const aiScreenApplications = (companyId, jobId, refresh = false) => {
+  return axios.post(`/job/${companyId}/jobs/${jobId}/screen?refresh=${refresh}`);
+};

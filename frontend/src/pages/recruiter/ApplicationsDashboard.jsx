@@ -8,6 +8,7 @@ import {
   getAllApplicationsForCompany,
   updateApplicationStatus,
   sendApplicationStatusEmail,
+  aiScreenApplications,
 } from "@/api/jobApi";
 import { getUser } from "@/api/profileApi";
 import useAuthStore from "@/store/userStore";
@@ -44,6 +45,15 @@ import {
   Users,
   FileText,
   Briefcase,
+  Sparkles,
+  Brain,
+  RefreshCw,
+  AlertTriangle,
+  Check,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
 } from "lucide-react";
 import {
   Dialog,
@@ -63,6 +73,24 @@ const ApplicationsDashboard = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [pendingStatusChange, setPendingStatusChange] = useState(null); // { applicationId, newStatus }
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [aiScreeningOpen, setAiScreeningOpen] = useState(false);
+  const [aiScreeningData, setAiScreeningData] = useState(null);
+  const [aiScreeningLoading, setAiScreeningLoading] = useState(false);
+  const [expandedCandidate, setExpandedCandidate] = useState(null);
+
+  const fetchAiScreening = async (forceRefresh = false) => {
+    if (!selectedJob || selectedJob === "all") return;
+    setAiScreeningLoading(true);
+    setAiScreeningOpen(true);
+    try {
+      const res = await aiScreenApplications(user?.company, selectedJob, forceRefresh);
+      setAiScreeningData(res.data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to retrieve AI screening results");
+    } finally {
+      setAiScreeningLoading(false);
+    }
+  };
 
   // Fetch jobs posted by the company
   const {
@@ -320,6 +348,18 @@ const ApplicationsDashboard = () => {
                 </Select>
               </div>
             )}
+
+            {selectedJob && selectedJob !== "all" && (
+              <div className="flex items-center">
+                <Button
+                  onClick={() => fetchAiScreening(false)}
+                  className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-medium shadow-md transition-all duration-200 hover:shadow-lg flex items-center justify-center gap-2"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Screen with AI
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -429,6 +469,255 @@ const ApplicationsDashboard = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            <Dialog open={aiScreeningOpen} onOpenChange={setAiScreeningOpen}>
+              <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+                <DialogHeader className="flex flex-row items-center justify-between border-b pb-4 pr-6">
+                  <div>
+                    <DialogTitle className="text-2xl font-bold flex items-center gap-2 text-indigo-900">
+                      <Sparkles className="h-6 w-6 text-indigo-600 animate-pulse" />
+                      <span>AI Candidate Screening & Ranking</span>
+                    </DialogTitle>
+                    <DialogDescription className="text-gray-500 mt-1">
+                      Candidates evaluated using weighted algorithms and Gemini enhancements.
+                    </DialogDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                    onClick={() => fetchAiScreening(true)}
+                    disabled={aiScreeningLoading}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${aiScreeningLoading ? 'animate-spin' : ''}`} />
+                    Refresh Analysis
+                  </Button>
+                </DialogHeader>
+
+                {aiScreeningLoading ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-4">
+                    <Loader2 className="h-12 w-12 text-indigo-600 animate-spin" />
+                    <p className="text-indigo-800 font-medium animate-pulse">Running screening algorithms...</p>
+                  </div>
+                ) : !aiScreeningData || !aiScreeningData.applicants || aiScreeningData.applicants.length === 0 ? (
+                  <div className="text-center py-12">
+                    <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Applications Screened</h3>
+                    <p className="text-gray-500">There are no candidates to analyze for this job post.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 py-4">
+                    {aiScreeningData.applicants.map((cand, idx) => {
+                      const isExpanded = expandedCandidate === cand.applicationId;
+                      const score = cand.aiScreening?.matchScore || 0;
+                      const conf = cand.aiScreening?.confidence || 0;
+                      const rec = cand.aiScreening?.recommendation || "Under-qualified";
+
+                      const scoreColor = score >= 80 
+                        ? "bg-green-100 text-green-800 border-green-200" 
+                        : score >= 60 
+                          ? "bg-yellow-100 text-yellow-800 border-yellow-200" 
+                          : "bg-red-100 text-red-800 border-red-200";
+
+                      return (
+                        <div key={cand.applicationId} className="border rounded-lg bg-white overflow-hidden shadow-sm hover:shadow transition-shadow duration-200">
+                          {/* Main Row */}
+                          <div className="p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-gray-50/50">
+                            <div className="flex items-center gap-3">
+                              <span className="text-lg font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 w-8 h-8 rounded-full flex items-center justify-center">
+                                #{idx + 1}
+                              </span>
+                              <div>
+                                <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                                  {cand.name}
+                                  {cand.status === "interview" && <Badge variant="secondary">Interviewing</Badge>}
+                                </h4>
+                                <p className="text-sm text-gray-500">{cand.headline || "No headline listed"}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">{cand.email}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3 self-stretch md:self-auto justify-end">
+                              {/* Match Score Badge */}
+                              <Badge className={`px-2.5 py-1 border text-sm font-semibold rounded-md ${scoreColor}`}>
+                                {score}% - {rec}
+                              </Badge>
+
+                              {/* Confidence Score */}
+                              <div className="text-right">
+                                <span className="text-xs text-gray-500 block">Confidence</span>
+                                <span className="text-sm font-semibold text-gray-700">{conf}%</span>
+                              </div>
+
+                              {/* Toggle expand */}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setExpandedCandidate(isExpanded ? null : cand.applicationId)}
+                              >
+                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Collapsible Details */}
+                          {isExpanded && (
+                            <div className="p-5 border-t space-y-4 bg-white animate-in fade-in duration-200">
+                              {/* Source Indicator */}
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-400">Analysis Source:</span>
+                                <Badge variant="outline" className="text-xs capitalize">
+                                  {cand.aiScreening?.source === "gemini" 
+                                    ? `AI (${cand.aiScreening.model || "gemini-2.5-flash"})` 
+                                    : "Local Algorithm (Standard ATS)"}
+                                </Badge>
+                              </div>
+
+                              {/* Summary */}
+                              <div>
+                                <h5 className="text-sm font-semibold text-indigo-900 mb-1 flex items-center gap-1.5">
+                                  <Brain className="h-4 w-4 text-indigo-500" />
+                                  AI Summary
+                                </h5>
+                                <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded border">
+                                  {cand.aiScreening?.summary || "No summary generated."}
+                                </p>
+                              </div>
+
+                              {/* Screening Reasons */}
+                              {cand.aiScreening?.screeningReasons?.length > 0 && (
+                                <div>
+                                  <h5 className="text-sm font-semibold text-indigo-900 mb-1">Key Screening Reasons</h5>
+                                  <ul className="list-disc list-inside text-sm text-gray-700 space-y-1 pl-1 bg-gray-50/50 p-3 rounded border">
+                                    {cand.aiScreening.screeningReasons.map((reason, i) => (
+                                      <li key={i}>{reason}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Strengths & Concerns Grid */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="border rounded-md p-3.5 bg-green-50/20 border-green-100">
+                                  <h6 className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-1.5">
+                                    <Check className="h-4 w-4 text-green-600" />
+                                    Strengths
+                                  </h6>
+                                  {cand.aiScreening?.strengths?.length > 0 ? (
+                                    <ul className="list-disc list-inside text-xs text-green-900 space-y-1">
+                                      {cand.aiScreening.strengths.map((str, i) => (
+                                        <li key={i}>{str}</li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    <span className="text-xs text-gray-400">No strengths recorded.</span>
+                                  )}
+                                </div>
+
+                                <div className="border rounded-md p-3.5 bg-red-50/20 border-red-100">
+                                  <h6 className="text-sm font-semibold text-red-800 mb-2 flex items-center gap-1.5">
+                                    <X className="h-4 w-4 text-red-600" />
+                                    Concerns
+                                  </h6>
+                                  {cand.aiScreening?.concerns?.length > 0 ? (
+                                    <ul className="list-disc list-inside text-xs text-red-900 space-y-1">
+                                      {cand.aiScreening.concerns.map((con, i) => (
+                                        <li key={i}>{con}</li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    <span className="text-xs text-gray-400">No major concerns flags.</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Skills Badges Grid */}
+                              <div className="space-y-3">
+                                <div>
+                                  <span className="text-xs font-semibold text-gray-500 block mb-1.5">Matched Skills</span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {cand.aiScreening?.matchedSkills?.length > 0 ? (
+                                      cand.aiScreening.matchedSkills.map((skill, i) => (
+                                        <Badge key={i} variant="outline" className="bg-green-50 text-green-800 border-green-200">
+                                          {skill}
+                                        </Badge>
+                                      ))
+                                    ) : (
+                                      <span className="text-xs text-gray-400">None matched</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <span className="text-xs font-semibold text-gray-500 block mb-1.5">Missing Skills</span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {cand.aiScreening?.missingSkills?.length > 0 ? (
+                                      cand.aiScreening.missingSkills.map((skill, i) => (
+                                        <Badge key={i} variant="outline" className="bg-red-50 text-red-800 border-red-200">
+                                          {skill}
+                                        </Badge>
+                                      ))
+                                    ) : (
+                                      <span className="text-xs text-gray-400">None missing</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Direct Recruiter Actions */}
+                              <div className="flex items-center gap-2 pt-3 border-t">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleViewProfile(cand.userId)}
+                                >
+                                  <Eye className="h-3.5 w-3.5 mr-1" />
+                                  View Profile
+                                </Button>
+
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDownloadResume(cand.resume, cand.name)}
+                                  disabled={!cand.resume}
+                                >
+                                  <Download className="h-3.5 w-3.5 mr-1" />
+                                  Resume
+                                </Button>
+
+                                <div className="ml-auto flex items-center gap-2">
+                                  {cand.status !== "interview" && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-purple-700 hover:bg-purple-50 border-purple-200"
+                                      onClick={() => handleStatusChange(cand.applicationId, "interview")}
+                                    >
+                                      Interview
+                                    </Button>
+                                  )}
+                                  {cand.status !== "rejected" && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-red-700 hover:bg-red-50 border-red-200"
+                                      onClick={() => handleStatusChange(cand.applicationId, "rejected")}
+                                    >
+                                      Reject
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
             <div className="bg-white shadow rounded-lg overflow-hidden">
               {applicationsLoading ? (
                 <div className="flex justify-center items-center h-64">

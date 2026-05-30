@@ -34,11 +34,16 @@ It is architected with production best practices including request validation, c
 
 # 2. Features
 
+### AI & Resume Screening
+- **AI-Powered Screening Engine**: Evaluates candidate resumes against job descriptions, calculating match scores and key concerns using Gemini (with deterministic local scoring fallback for test environments).
+- **Resume Text Extraction**: Automatic PDF resume text extraction via a custom OOP `pdf-parse` implementation to populate candidate profiles and skills.
+- **Self-Healing Resume Parse**: Inside the screening flow, the backend checks for missing text previews and automatically triggers a re-parse on-the-fly to ensure complete coverage.
+
 ## Authentication & Security
 - **JWT Token Rotation**: Access + Refresh token model. Refresh tokens are hashed and stored in a dedicated `RefreshToken` collection with an automatic 7-day TTL, and returned via HTTP-only cookies.
 - **Robust 2FA**: Email-based OTP during login and signup. OTPs are securely hashed and stored in a short-lived, auto-expiring `Otp` collection to prevent database bloat.
 - **Rate Limiting**: IP-based rate limiting configured for production environments behind proxies (`trust proxy`).
-- **Secure Password Reset**: Secure short-lived tokens sent via email.
+- **Secure Password Reset**: Secure short-lived tokens sent via email, automatically cleaning up old tokens on new requests to prevent collision.
 - **Request Validation**: Zod-powered schema validation for all incoming payloads.
 - **Encrypted File Uploads**: Cloudinary integration for secure resume hosting.
 
@@ -99,9 +104,10 @@ It is architected with production best practices including request validation, c
 - MongoDB + Mongoose  
 - Zod  
 - Multer  
-- Nodemailer  
+- Nodemailer (Gmail fallback & Brevo SMTP integration)
 - Pino (Logging)
 - Cookie-Parser
+- pdf-parse (OOP based parser)
 
 ---
 
@@ -179,11 +185,14 @@ PORT=
 JWT_SECRET_KEY=
 MONGO_URI= 
 EMAIL_USER=
+EMAIL_PASS= # Required if using Nodemailer Gmail SMTP fallback
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=      
 CLOUDINARY_API_SECRET=
 FRONTEND_URL=
 RESEND_API_KEY=
+BREVO_API_KEY=
+GEMINI_API_KEY= # Required for AI Screening
 ```
 
 ---
@@ -198,6 +207,16 @@ RESEND_API_KEY=
 6. Refresh token is hashed and saved in `RefreshToken` and sent back as a strictly secure HTTP-only cookie.
 7. Access token is returned in the JSON payload, and the Client stores the JWT in Zustand (memory only).  
 8. `/api/auth/refresh` endpoint renews active Access Tokens seamlessly via the cookie.
+
+---
+
+## AI Resume Screening Flow
+
+1. Candidate uploads a PDF resume.
+2. Resume Parser service downloads the PDF buffer, reads it via `pdf-parse`, and extracts plain text and detected technical skills.
+3. Recruiter clicks **"Screen with AI"** from the Job Application dashboard.
+4. The backend verifies the user's role and company permissions, evaluates the parsed text and matching skills, and submits the analysis to the Gemini model.
+5. Scores, strengths, and concerns are returned to the frontend and cached on the MongoDB Application document.
 
 ---
 
@@ -281,6 +300,7 @@ GET    /api/job
 GET    /api/job/:id
 POST   /api/job/:id/apply
 PUT    /api/job/applications/:id/status
+POST   /api/job/:companyId/jobs/:jobId/screen
 ```
 
 ### Articles
@@ -396,7 +416,6 @@ npm run build
 - Real-time notifications  
 - Comments on articles  
 - Full-text search  
-- Resume parser integration  
 - Interview scheduling system  
 - Company-level insights  
 
