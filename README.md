@@ -411,7 +411,35 @@ npm run build
 
 ---
 
-# 10. Future Enhancements
+# 10. Testing & Verification
+
+The CareerConnect backend features a comprehensive unit and integration testing suite utilizing Jest and Supertest. All tests run in isolated environments with stubbed database transactions.
+
+### Running the Tests
+To run all test suites:
+```bash
+cd backend
+npm test
+```
+
+### Test Results
+```text
+PASS  __tests__/aiScreen.test.js
+PASS  __tests__/auth.test.js
+PASS  __tests__/companyRbac.test.js
+PASS  __tests__/rbac.test.js
+PASS  __tests__/workflows.test.js
+PASS  __tests__/security.test.js
+
+Test Suites: 6 passed, 6 total
+Tests:       51 passed, 51 total
+Snapshots:   0 total
+Time:        12.754 s
+```
+
+---
+
+# 11. Future Enhancements
 - Recruiter analytics dashboard  
 - Real-time notifications  
 - Comments on articles  
@@ -421,5 +449,5 @@ npm run build
 
 ---
 
-# 11. License
+# 12. License
 The project is released under the MIT License.
