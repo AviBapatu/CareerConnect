@@ -36,7 +36,7 @@ const userSchema = new Schema(
     // Global role: determines if the user is a job seeker or recruiter
     role: {
       type: String,
-      enum: ["candidate", "recruiter"],
+      enum: ["candidate", "recruiter", "admin"],
       default: "candidate",
       required: true,
     },
