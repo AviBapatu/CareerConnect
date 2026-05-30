@@ -195,10 +195,14 @@ export const updateArticle = async (req, res) => {
     authorId
   );
 
+  const query = req.user.role === "admin"
+    ? { _id: articleId }
+    : { _id: articleId, author: authorId };
+
   const article = await catchAndWrap(
     () =>
       Article.findOneAndUpdate(
-        { _id: articleId, author: authorId },
+        query,
         updateData,
         { new: true }
       ),
@@ -216,12 +220,13 @@ export const deleteArticle = async (req, res) => {
   }
   const authorId = req.user.company ? req.user.company : req.user._id;
 
+  const query = req.user.role === "admin"
+    ? { _id: parsed.data.articleId }
+    : { _id: parsed.data.articleId, author: authorId };
+
   const deleted = await catchAndWrap(
     () =>
-      Article.findOneAndDelete({
-        _id: parsed.data.articleId,
-        author: authorId,
-      }),
+      Article.findOneAndDelete(query),
     "Failed to delete article"
   );
 
