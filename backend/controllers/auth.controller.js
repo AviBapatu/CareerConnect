@@ -110,6 +110,7 @@ const verifySignup2FA = async (req, res) => {
   res.status(200).json({
     message: "Registration successful",
     accessToken,
+    token: accessToken,
     user: {
       id: user._id,
       name: user.name,
@@ -274,6 +275,7 @@ const loginUser = async (req, res) => {
     success: true,
     message: "Login successful",
     accessToken,
+    token: accessToken,
     user: {
       id: user._id,
       name: user.name,
@@ -395,8 +397,14 @@ const forgotPassword = async (req, res) => {
     404
   );
 
+  if (!user) {
+    throw new AppError("User not found with this email", 404);
+  }
+
   const token = crypto.randomBytes(32).toString("hex");
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  await PasswordResetToken.deleteMany({ user: user._id });
 
   await PasswordResetToken.create({
     user: user._id,
@@ -410,10 +418,15 @@ const forgotPassword = async (req, res) => {
 };
 
 const resetPassword = async (req, res) => {
+  req.log.info({ params: req.params, body: req.body }, "[resetPassword] Received request");
   const paramsResult = resetPasswordParamsSchema.safeParse(req.params);
   const bodyResult = resetPasswordBodySchema.safeParse(req.body);
 
   if (!paramsResult.success || !bodyResult.success) {
+    req.log.info({
+      paramsErrors: paramsResult.error?.flatten(),
+      bodyErrors: bodyResult.error?.flatten()
+    }, "[resetPassword] Zod validation failed");
     return res.status(400).json({
       success: false,
       errors: {
@@ -429,10 +442,13 @@ const resetPassword = async (req, res) => {
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
   const resetDoc = await PasswordResetToken.findOne({ user: id });
+  req.log.info({ resetDoc, id, hashedToken }, "[resetPassword] Found reset document");
   if (!resetDoc) {
+    req.log.info("[resetPassword] Reset document not found for user ID");
     throw new AppError("Token invalid or expired", 400);
   }
   if (resetDoc.token !== hashedToken) {
+    req.log.info({ docToken: resetDoc.token, hashedToken }, "[resetPassword] Token mismatch");
     throw new AppError("Token invalid or expired", 400);
   }
 

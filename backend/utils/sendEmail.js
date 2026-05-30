@@ -1,23 +1,45 @@
 import { logger } from "./logger.js";
 import SibApiV3Sdk from "sib-api-v3-sdk";
+import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const client = SibApiV3Sdk.ApiClient.instance;
-client.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
+if (process.env.BREVO_API_KEY) {
+  client.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
+}
 const emailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 
 export const sendEmail = async (to, subject, html) => {
-  await emailApi.sendTransacEmail({
-    sender: {
-      email: "connectcareer01@gmail.com",
-      name: "CareerConnect",
-    },
-    to: [{ email: to }],
-    subject,
-    htmlContent: html,
-  });
+  if (process.env.BREVO_API_KEY) {
+    await emailApi.sendTransacEmail({
+      sender: {
+        email: "connectcareer01@gmail.com",
+        name: "CareerConnect",
+      },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    });
+  } else if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    await transporter.sendMail({
+      from: `"CareerConnect" <${process.env.EMAIL_USER}>`,
+      to,
+      subject,
+      html,
+    });
+  } else {
+    logger.warn("No email service configured (missing BREVO_API_KEY and EMAIL_USER/EMAIL_PASS). Email not sent.");
+  }
 };
 
 export const sendPasswordReset = async (email, resetURL) => {
