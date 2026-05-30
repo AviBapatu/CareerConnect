@@ -13,6 +13,54 @@ const applicationSchema = new Schema(
       enum: ["applied", "reviewed", "interview", "hired", "rejected"],
       default: "applied",
     },
+    resumeMetadata: {
+      detectedSkills: {
+        type: [String],
+        default: [],
+      },
+      textPreview: String,
+      textHash: String,
+      extractedAt: Date
+    },
+    aiScreening: {
+      matchScore: Number,
+      confidence: Number,
+      summary: String,
+      recommendation: String,
+      matchedSkills: {
+        type: [String],
+        default: [],
+      },
+      missingSkills: {
+        type: [String],
+        default: [],
+      },
+      strengths: {
+        type: [String],
+        default: [],
+      },
+      concerns: {
+        type: [String],
+        default: [],
+      },
+      screeningReasons: {
+        type: [String],
+        default: [],
+      },
+      source: {
+        type: String,
+        enum: ["local", "gemini"],
+        default: "local"
+      },
+      model: String, // Tracks the specific model version used (e.g. gemini-2.5-flash)
+      status: {
+        type: String,
+        enum: ["PENDING", "PROCESSING", "COMPLETED"],
+        default: "PENDING"
+      },
+      version: Number,
+      lastScreenedAt: Date
+    },
   },
   { timestamps: true }
 );

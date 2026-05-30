@@ -19,6 +19,7 @@ import {
   getAllJobs,
   sendApplicationStatusEmail,
   deleteJobById,
+  aiScreenApplications,
 } from "../controllers/job.controller.js";
 
 import { authentication } from "../middleware/auth.js";
@@ -57,6 +58,12 @@ router.get(
   checkCompanyRole("recruiter", "admin"),
   getAllApplicationForAJob
 ); //
+router.post(
+  "/:companyId/jobs/:jobId/screen",
+  role("recruiter"),
+  checkCompanyRole("recruiter", "admin"),
+  aiScreenApplications
+);
 router.get(
   "/applications/company",
   role("recruiter"),

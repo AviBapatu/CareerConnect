@@ -2,6 +2,8 @@ import Application from "../models/Application.js";
 import Job from "../models/Job.js";
 import { AppError } from "../utils/AppError.js";
 import { catchAndWrap } from "../utils/catchAndWrap.js";
+import { parseResume } from "../services/resumeParser.service.js";
+import { screenApplicants } from "../services/aiScreen.service.js";
 import {
   applySchema,
   postJobSchema,
@@ -58,6 +60,25 @@ export const applyToJob = async (req, res) => {
     throw new AppError("Validation failed", 400, parsed.error.errors);
   }
 
+  // Parse resume outside transaction to avoid long-lived DB locks
+  let resumeMetadata = {
+    detectedSkills: [],
+    textPreview: "",
+    textHash: null,
+    extractedAt: new Date(),
+  };
+
+  try {
+    req.log.info(`Parsing resume at upload/apply: ${parsed.data.resume}`);
+    const parsedData = await parseResume(parsed.data.resume);
+    resumeMetadata = {
+      ...parsedData,
+      extractedAt: new Date(),
+    };
+  } catch (error) {
+    req.log.error("Resume parsing failed, proceeding with empty metadata:", error);
+  }
+
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -84,6 +105,7 @@ export const applyToJob = async (req, res) => {
               user: userId,
               resume: parsed.data.resume,
               coverLetter: parsed.data.coverLetter,
+              resumeMetadata,
             },
           ],
           { session }
@@ -668,4 +690,55 @@ export const sendApplicationStatusEmail = async (req, res) => {
   res
     .status(200)
     .json({ success: true, message: "Status update email sent to applicant." });
+};
+
+export const aiScreenApplications = async (req, res) => {
+  const { companyId, jobId } = req.params;
+  const refresh = req.query.refresh === "true";
+  const userCompanyId = req.user.company;
+
+  if (!userCompanyId || String(userCompanyId) !== String(companyId)) {
+    throw new AppError("Unauthorized access to company data", 403);
+  }
+
+  const job = await catchAndWrap(
+    () => Job.findById(jobId),
+    "Failed to fetch job posting"
+  );
+  if (!job) {
+    throw new AppError("Job not found", 404);
+  }
+  if (String(job.company) !== String(companyId)) {
+    throw new AppError("Job posting does not belong to this company", 403);
+  }
+
+  const applications = await catchAndWrap(
+    () =>
+      Application.find({ job: jobId }).populate({
+        path: "user",
+        select: "name email headline skills experience education about avatarUrl phone location",
+      }),
+    "Failed to fetch job applications"
+  );
+
+  // Filter out applications where user is null (e.g. deleted user)
+  const validApplications = applications.filter(app => app.user);
+
+  if (validApplications.length === 0) {
+    return res.status(200).json({
+      success: true,
+      totalApplicants: 0,
+      screenedAt: new Date().toISOString(),
+      applicants: []
+    });
+  }
+
+  const results = await screenApplicants(job, validApplications, refresh);
+
+  res.status(200).json({
+    success: true,
+    totalApplicants: results.length,
+    screenedAt: results[0]?.aiScreening?.lastScreenedAt || new Date().toISOString(),
+    applicants: results
+  });
 };
