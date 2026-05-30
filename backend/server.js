@@ -39,7 +39,9 @@ app.use(
   })
 );
 
-connectDB();
+if (process.env.NODE_ENV !== "test") {
+  connectDB();
+}
 app.use(requestLogger);
 
 app.use("/api", globalLimiter);
@@ -65,31 +67,35 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-try {
-  const server = app.listen(PORT, () => {
-    logger.info(`Server is up Baby! Running on ${PORT}`);
-  });
-
-  const shutdown = async (signal) => {
-    logger.info(`Received ${signal}. Closing server...`);
-
-    server.close(async () => {
-      logger.info("HTTP server closed");
-
-      try {
-        await mongoose.connection.close(false);
-        logger.info("MongoDB connection closed");
-        process.exit(0);
-      } catch (err) {
-        logger.error("Error closing MongoDB:", err);
-        process.exit(1);
-      }
+if (process.env.NODE_ENV !== "test") {
+  try {
+    const server = app.listen(PORT, () => {
+      logger.info(`Server is up Baby! Running on ${PORT}`);
     });
-  };
 
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
-} catch (err) {
-  logger.error("Server failed to start", err);
-  process.exit(1);
+    const shutdown = async (signal) => {
+      logger.info(`Received ${signal}. Closing server...`);
+
+      server.close(async () => {
+        logger.info("HTTP server closed");
+
+        try {
+          await mongoose.connection.close(false);
+          logger.info("MongoDB connection closed");
+          process.exit(0);
+        } catch (err) {
+          logger.error("Error closing MongoDB:", err);
+          process.exit(1);
+        }
+      });
+    };
+
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+  } catch (err) {
+    logger.error("Server failed to start", err);
+    process.exit(1);
+  }
 }
+
+export default app;
