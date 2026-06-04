@@ -35,7 +35,7 @@ app.use(cookieParser());
 app.use(
   cors({
     origin: [
-      "https://career-connect-avi.vercel.app",
+      process.env.FRONTEND_URL,
       "http://localhost:5173",
       "http://127.0.0.1:5173"
     ],
