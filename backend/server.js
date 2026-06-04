@@ -45,7 +45,9 @@ if (process.env.NODE_ENV !== "test") {
   connectDB();
 }
 app.use(requestLogger);
-
+app.get('/health' , (req , res) => { 
+  res.status(200).send("Good");
+})
 app.use("/api", globalLimiter);
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
